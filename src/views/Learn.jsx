@@ -63,7 +63,7 @@ export function Concept({ id }) {
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
 
-      {x.summary && <p class="lead">{x.summary}</p>}
+      {x.summary && <Md text={x.summary} class="lead" />}
       {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} /></section>}
       {x.definition && <section><h2 class="h3">시험용 핵심 정의</h2><Md text={x.definition} /></section>}
       {!brief && x.examples?.map((e, i) => (
