@@ -27,7 +27,13 @@ let ver = 0;
 function emit() { ver++; subs.forEach(f => f(ver)); }
 export function useStore() {
   const [, set] = useState(0);
-  useEffect(() => { const f = v => set(v); subs.add(f); return () => subs.delete(f); }, []);
+  const seen = ver;
+  useEffect(() => {
+    const f = v => set(v); subs.add(f);
+    // 렌더 이후 구독 전에 상태가 바뀐 경우(초기화가 빨리 끝난 경우) 놓친 변경을 반영
+    if (ver !== seen) set(ver);
+    return () => subs.delete(f);
+  }, []);
   return state;
 }
 export const getState = () => state;
