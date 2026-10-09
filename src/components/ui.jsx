@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { marked } from 'marked';
 import { useStore, getState } from '../store.js';
+import { isPastExamProblem, hasPastExamConcept } from '../exam-tags.js';
 
 marked.setOptions({ gfm: true, breaks: false });
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -66,6 +67,12 @@ export function OriginBadge({ origin }) {
   const s = useStore();
   const generic = { restored: '복원 기출', mock: '모의고사', variant: '변형 문제', material: '연습 문제', authored: 'AI 작성 연습 문제', reconstructed: 'AI 재구성 문제', gamja: '연습 문제' };
   return <span class={'ob ob-' + origin}>{(s.isAdmin ? ORIGIN_LABEL : generic)[origin] || '연습 문제'}</span>;
+}
+
+export function ExamBadge({ problem, conceptId }) {
+  const s = useStore();
+  const shown = problem ? isPastExamProblem(problem) : hasPastExamConcept(s.content, conceptId);
+  return shown ? <span class="vb exam-tag" title={problem ? '복원 기출 문제' : '수록된 복원 기출에 연결된 개념'}>기출</span> : null;
 }
 
 export function SourceRef({ src, label }) {

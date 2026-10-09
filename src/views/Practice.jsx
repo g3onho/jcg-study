@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore, addEvent, setKV, getKV, resolveConflict } from '../store.js';
 import { problemStates, conceptStates, recommendProblem, LEVEL_LABEL, AREA_LABEL, CAUSES } from '../engine.js';
 import { grade } from '../grading.js';
-import { Md, Code, Table, VBadges, VDetails, OriginBadge, SourceRef, SignedImg, Empty } from '../components/ui.jsx';
+import { Md, Code, Table, VBadges, VDetails, OriginBadge, SourceRef, SignedImg, Empty, ExamBadge } from '../components/ui.jsx';
 import { InkCodeLayer } from '../components/Ink.jsx';
 import { problemLink } from '../study-links.js';
 
@@ -41,7 +41,7 @@ export function Practice({ route }) {
           <ul class="plist">{ps.map(p => { const st = pst[p.id]; return (
             <li key={p.id}><a href={'#/p/' + p.id}>
               <span class="pno">{p.no}</span>
-              <span class="ptitle">{AREA_LABEL[p.area]}{p.lang && p.area === 'code' ? ' · ' + LANG_LABEL[p.lang] : ''}{st?.level || p.area !== 'theory' ? ' · ' + p.title : ''}</span>
+              <span class="ptitle">{AREA_LABEL[p.area]}{p.lang && p.area === 'code' ? ' · ' + LANG_LABEL[p.lang] : ''}{st?.level || p.area !== 'theory' ? ' · ' + p.title : ''}<ExamBadge problem={p} /></span>
               <span class={'st st' + (st?.level || 0) + (st?.status === 'wrong' ? ' stw' : '')}>{st?.status === 'wrong' ? '오답' : LEVEL_LABEL[st?.level || 0]}</span>
             </a></li>); })}</ul>
         </section>
@@ -109,7 +109,7 @@ export function Problem({ id, route, ink, inkPrefs }) {
     <div class="page problem">
       <div class="crumbs small"><a href={'#/practice?set=' + p.set}>{p.setTitle}</a> · {p.no}번</div>
       <h1 class="h2">{p.setTitle} {p.no}번 <span class="muted small">{AREA_LABEL[p.area]}{p.lang ? ' · ' + LANG_LABEL[p.lang] : ''}</span></h1>
-      <div class="meta"><OriginBadge origin={p.origin} /> <VBadges list={p.verification} />
+      <div class="meta"><ExamBadge problem={p} /><OriginBadge origin={p.origin} /> <VBadges list={p.verification} />
         {st?.level ? <span class={'st st' + st.level}>{LEVEL_LABEL[st.level]} · 시도 {st.count}회</span> : null}
       </div>
       <div class="small">주제: {showTitle || showAnswer || p.area !== 'theory' ? <b>{p.title}</b> : <button class="linkbtn" onClick={() => setShowTitle(true)}>주제 보기(답이 드러날 수 있음)</button>}</div>
@@ -180,8 +180,8 @@ export function Problem({ id, route, ink, inkPrefs }) {
 
       <section>
         <h2 class="h3">관련 개념</h2>
-        {(p.concepts || []).length ? <ul class="list">{p.concepts.map(cid => { const x = c.conceptById[cid]; return x ? <li key={cid}><a href={'#/c/' + cid}>{x.title}</a> {cst[cid]?.readAt ? <span class="small muted">· 읽어봄</span> : <span class="small muted">· 아직 안 봄</span>}</li> : null; })}</ul> : <p class="small muted">연결된 개념 없음</p>}
-        {showAnswer && similar.length > 0 && <><h3 class="h4">같은 개념의 다른 문제(변형 연습)</h3><ul class="list">{similar.map(x => { const q = c.problemById[x]; return <li key={x}><a href={problemLink(x, concept && q.concepts?.includes(concept) ? concept : null, seen)}>{q.setTitle} {q.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[x]?.level || 0]}</span></li>; })}</ul></>}
+        {(p.concepts || []).length ? <ul class="list">{p.concepts.map(cid => { const x = c.conceptById[cid]; return x ? <li key={cid}><a href={'#/c/' + cid}>{x.title}</a><ExamBadge conceptId={cid} /> {cst[cid]?.readAt ? <span class="small muted">· 읽어봄</span> : <span class="small muted">· 아직 안 봄</span>}</li> : null; })}</ul> : <p class="small muted">연결된 개념 없음</p>}
+        {showAnswer && similar.length > 0 && <><h3 class="h4">같은 개념의 다른 문제(변형 연습)</h3><ul class="list">{similar.map(x => { const q = c.problemById[x]; return <li key={x}><a href={problemLink(x, concept && q.concepts?.includes(concept) ? concept : null, seen)}>{q.setTitle} {q.no}번</a> <ExamBadge problem={q} /><span class="small muted">{LEVEL_LABEL[pst[x]?.level || 0]}</span></li>; })}</ul></>}
       </section>
 
       {s.isAdmin && <section>

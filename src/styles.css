@@ -108,6 +108,7 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 .ob { font-size: .76rem; padding: 2px 8px; border-radius: 6px; background: var(--ink); color: var(--panel); }
 .ob-authored, .ob-reconstructed { background: var(--warn); color: #fff; }
 .core { font-size: .72rem; margin-left: 6px; padding: 1px 6px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); vertical-align: middle; }
+.exam-tag { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); margin-inline: 4px; }
 .notice { background: var(--warn-bg); border-left: 4px solid var(--warn); padding: 8px 12px; border-radius: 6px; margin: 8px 0; }
 .alert { background: var(--bad-bg); color: var(--bad); padding: 10px 12px; border-radius: 8px; margin: 8px 0; }
 .alert.warn { background: var(--warn-bg); color: var(--ink); border-left: 4px solid var(--warn); }

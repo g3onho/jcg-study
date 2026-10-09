@@ -8,7 +8,8 @@ export const fixtureContent = {
   ],
   sets: [{ id: 'demo', title: '연습 문제', count: 3 }],
   problems: [1, 2, 3].map(n => ({
-    id: 'demo-' + n, set: 'demo', setTitle: '연습 문제', no: n, title: n < 3 ? '배열 값 확인' : '반복문 확인', area: 'code', lang: 'python', origin: 'authored',
+    // 첫 문항의 restored는 태그 표시 점검용 분류이며 실제 기출 자료가 아니다.
+    id: 'demo-' + n, set: 'demo', setTitle: '화면 점검용 예시', no: n, title: n < 3 ? '배열 값 확인' : '반복문 확인', area: 'code', lang: 'python', origin: n === 1 ? 'restored' : 'authored',
     prompt: '다음 코드의 출력 결과를 쓰세요.', code: n < 3 ? `values = [10, 20]\nprint(values[${n - 1}])` : 'for i in range(1):\n    print(i)',
     concepts: [n < 3 ? 'array' : 'loop'], answer_display: n === 1 ? '10' : n === 2 ? '20' : '0',
     grading: { mode: 'output', output: { accept: [n === 1 ? '10' : n === 2 ? '20' : '0'], ws: 'line' } },

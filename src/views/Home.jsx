@@ -1,7 +1,7 @@
 import { useStore, getKV, setKV } from '../store.js';
 import { problemStates, conceptStates, reviewQueue, recommendConcept, recommendProblem, focusSession, daysToExam, AREA_LABEL } from '../engine.js';
 import { EXAM_LABEL } from '../config.js';
-import { Empty } from '../components/ui.jsx';
+import { Empty, ExamBadge } from '../components/ui.jsx';
 
 export function useDerived() {
   const s = useStore();
@@ -52,14 +52,14 @@ export function Home() {
       <section>
         <h2>우선 복습하면 좋은 문제</h2>
         {q.length ? (
-          <ul class="list">{q.map(x => { const p = c.problemById[x.pid]; return <li key={x.pid}><a href={'#/p/' + x.pid + '?from=review'}>{p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><div class="small muted">{x.reasons.join(' · ')}</div></li>; })}</ul>
+          <ul class="list">{q.map(x => { const p = c.problemById[x.pid]; return <li key={x.pid}><a href={'#/p/' + x.pid + '?from=review'}>{p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><ExamBadge problem={p} /><div class="small muted">{x.reasons.join(' · ')}</div></li>; })}</ul>
         ) : <Empty>지금 다시 볼 차례인 문제가 없습니다. 틀리거나 힌트를 쓴 문제는 1~2일 뒤 여기에 나타납니다.</Empty>}
       </section>
 
       {rc && (
         <section>
           <h2>다음 추천 개념</h2>
-          <a class="card" href={'#/c/' + rc.concept.id}><b>{rc.concept.title}</b><div class="small muted">{rc.reason}</div></a>
+          <a class="card" href={'#/c/' + rc.concept.id}><b>{rc.concept.title}</b><ExamBadge conceptId={rc.concept.id} /><div class="small muted">{rc.reason}</div></a>
         </section>
       )}
 
@@ -84,9 +84,9 @@ export function Focus() {
       <button class="btn small" onClick={() => setKV('focus', { created: new Date().toISOString(), items: focusSession(c, cst, pst) })}>새 묶음 만들기</button>
       <ol class="list">
         {items.map((it, i) => {
-          if (it.kind === 'concept') { const x = c.conceptById[it.cid]; const done = !!cst[it.cid]?.readAt; return <li key={i} class={done ? 'done' : ''}><a href={'#/c/' + it.cid}>📘 {x.title}</a>{done && ' ✓'}<div class="small muted">{it.reason}</div></li>; }
+          if (it.kind === 'concept') { const x = c.conceptById[it.cid]; const done = !!cst[it.cid]?.readAt; return <li key={i} class={done ? 'done' : ''}><a href={'#/c/' + it.cid}>📘 {x.title}</a><ExamBadge conceptId={it.cid} />{done && ' ✓'}<div class="small muted">{it.reason}</div></li>; }
           const p = c.problemById[it.pid]; const st = pst[it.pid];
-          return <li key={i} class={st?.level ? 'done' : ''}><a href={'#/p/' + it.pid + '?from=focus'}>✏️ {p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a>{st?.level ? ' ✓' : ''}<div class="small muted">{it.reason}</div></li>;
+          return <li key={i} class={st?.level ? 'done' : ''}><a href={'#/p/' + it.pid + '?from=focus'}>✏️ {p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><ExamBadge problem={p} />{st?.level ? ' ✓' : ''}<div class="small muted">{it.reason}</div></li>;
         })}
       </ol>
     </div>

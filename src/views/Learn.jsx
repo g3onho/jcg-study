@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { useStore, addEvent, setKV } from '../store.js';
 import { problemStates, conceptStates, LEVEL_LABEL, AREA_LABEL } from '../engine.js';
 import { grade } from '../grading.js';
-import { Md, Code, Table, VBadges, VDetails, SourceRef, Empty } from '../components/ui.jsx';
+import { Md, Code, Table, VBadges, VDetails, SourceRef, Empty, ExamBadge } from '../components/ui.jsx';
 import { problemLink } from '../study-links.js';
 
 export function Learn({ route }) {
@@ -24,7 +24,7 @@ export function Learn({ route }) {
             const checksOk = x.checks?.length && x.checks.every(q => cs?.checks?.[q.id]?.result === 'correct');
             return (
               <li key={cid}><a href={'#/c/' + cid}>
-                <span class="ctitle">{x.title}{x.core ? <span class="core" title={x.coreNote}>핵심</span> : null}</span>
+                <span class="ctitle">{x.title}<ExamBadge conceptId={cid} />{x.core ? <span class="core" title={x.coreNote}>핵심</span> : null}</span>
                 <span class="small muted">{cs?.readAt ? (checksOk ? '확인 문제 통과' : '읽어봄') : '미확인'} · 연결 문제 {solved}/{n}</span>
               </a></li>);
           })}</ul>
@@ -59,7 +59,7 @@ export function Concept({ id }) {
     <div class="page concept">
       <div class="crumbs small"><a href="#/learn">개념 학습</a> · {unit?.title}</div>
       <h1>{x.title}</h1>
-      <div class="meta">{x.core && <span class="core" title={x.coreNote}>핵심</span>} <VBadges list={x.verification} /> <span class="small muted">{x.origin_note || '여러 자료를 바탕으로 구축 단계에서 정리한 설명(AI 작성·검토)'}</span></div>
+      <div class="meta"><ExamBadge conceptId={id} />{x.core && <span class="core" title={x.coreNote}>핵심</span>} <VBadges list={x.verification} /> <span class="small muted">{x.origin_note || '여러 자료를 바탕으로 구축 단계에서 정리한 설명(AI 작성·검토)'}</span></div>
       {x.prereq?.length ? <p class="small">먼저 보면 좋은 개념: {x.prereq.map((p, i) => <span key={p}>{i ? ', ' : ''}<a href={'#/c/' + p}>{c.conceptById[p]?.title}</a></span>)}</p> : null}
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
@@ -89,7 +89,7 @@ export function Concept({ id }) {
         {probs.length ? <a class="btn primary" href={problemLink(probs.find(pid => !pst[pid]?.level) || probs[0], id)}>연결 문제 풀기</a> : null}
       </div>
 
-      {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2><ul class="list">{probs.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={problemLink(pid, id)}>{p.setTitle} {p.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></section> : null}
+      {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2><ul class="list">{probs.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={problemLink(pid, id)}>{p.setTitle} {p.no}번</a> <ExamBadge problem={p} /><span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></section> : null}
       {x.related?.length ? <p class="small">관련 개념: {x.related.map((r, i) => <span key={r}>{i ? ', ' : ''}<a href={'#/c/' + r}>{c.conceptById[r]?.title}</a></span>)}</p> : null}
 
       {s.isAdmin && <section>
