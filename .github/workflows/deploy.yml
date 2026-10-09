@@ -1,0 +1,40 @@
+name: Deploy app shell to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          # 공개용 값(브라우저용 publishable 키). 데이터 접근 권한은 Supabase RLS·Storage 정책이 결정한다.
+          VITE_SUPABASE_URL: https://vbygfyuxwjoiddojznas.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_CUF8cYsinQ_yd7mvOmsWTw_9MFBGbuT
+          APP_BASE: /jcg-study/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
