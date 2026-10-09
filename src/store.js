@@ -37,7 +37,9 @@ function persistLocal() { lsSet(uidKey('outbox'), state.outbox); lsSet(uidKey('k
 
 export async function init() {
   state.api = await getApi();
-  state.session = await state.api.getSession();
+  try {
+    state.session = await Promise.race([state.api.getSession(), new Promise((_, rej) => setTimeout(() => rej(new Error('세션 확인 시간 초과')), 12000))]);
+  } catch (e) { state.session = null; state.bootError = e.message; }
   state.api.onAuthChange(s => {
     const was = state.session?.user?.id; state.session = s;
     // supabase-js: 인증 상태 콜백 안에서 다른 Supabase 호출을 바로 기다리면 내부 잠금 때문에 멈출 수 있어 다음 틱으로 미룬다.

@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { processLock } from '@supabase/auth-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, BUCKET } from '../config.js';
 
 export function makeSupabaseApi() {
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'jcg-auth' },
+    // 탭 간 navigator.locks 대기로 앱이 멈추는 문제를 피하려고 탭 내부 잠금(processLock)을 사용한다.
+    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'jcg-auth', lock: processLock },
   });
   const api = {
     kind: 'supabase',
