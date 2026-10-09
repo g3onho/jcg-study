@@ -29,7 +29,7 @@ function studyHighlights({ keywords = [], memoryTerms = [], memoryMode = 'all', 
       if (h.at < from) continue;
       let wrap = null;
       if (h.kind === 'mem') {
-        if (!(memoryMode === 'lead' && state.seen.has(h.word))) { state.seen.add(h.word); wrap = 'mark'; }
+        if (!(memoryMode !== 'all' && state.seen.has(h.word))) { state.seen.add(h.word); wrap = 'mark'; }
       } else if (!(keywordOnce && state.kw.has(h.word))) { state.kw.add(h.word); wrap = 'kw'; }
       out += part.slice(from, h.at) + (wrap === 'mark' ? '<mark class="study-mark">' + h.word + '</mark>' : wrap === 'kw' ? '<span class="study-keyword">' + h.word + '</span>' : h.word);
       from = h.end;
@@ -40,18 +40,29 @@ function studyHighlights({ keywords = [], memoryTerms = [], memoryMode = 'all', 
 }
 
 export function renderStudyText(text, options) {
-  return studyHighlights(options).highlight(escapeHtml(text));
+  const { highlight } = studyHighlights(options);
+  // 키워드 칩 "A = B": B는 문제에서 주어지는 설명(단서)이므로 통째로 빨간 글씨로 보여 준다. A 쪽만 용어·영문 단서를 따로 강조한다.
+  const i = options?.tailCue ? String(text).indexOf(' = ') : -1;
+  if (i > 0) return highlight(escapeHtml(text.slice(0, i))) + ' = <span class="study-keyword">' + escapeHtml(text.slice(i + 3)) + '</span>';
+  return highlight(escapeHtml(text));
 }
 
 export function renderMarkdown(text, options) {
   const { highlight, codeMemory, state, memoryMode } = studyHighlights(options);
   const renderer = new Renderer();
+  // unit 모드: 같은 용어는 한 문단·목록 항목·표 행 안에서만 한 번씩 칠한다(블록이 바뀌면 다시 칠함).
+  if (options?.keywordOnce === 'unit' || memoryMode === 'unit') { // 두 옵션은 따로 동작한다
+    for (const name of ['paragraph', 'listitem', 'tablerow', 'heading']) {
+      const orig = renderer[name].bind(renderer);
+      renderer[name] = (...a) => { const out = orig(...a); if (options?.keywordOnce === 'unit') state.kw.clear(); if (memoryMode === 'unit') state.seen.clear(); return out; };
+    }
+  }
   // 원시 HTML은 문자로 표시한다. 코드 블록·링크 주소는 보존하고 선택한 인라인 답안만 강조한다.
   renderer.html = escapeHtml;
   renderer.text = highlight;
   renderer.codespan = value => {
-    const mark = codeMemory.has(value) && !(memoryMode === 'lead' && state.seen.has(value));
-    if (mark && memoryMode === 'lead') state.seen.add(value);
+    const mark = codeMemory.has(value) && !(memoryMode !== 'all' && state.seen.has(value));
+    if (mark && memoryMode !== 'all') state.seen.add(value);
     return '<code>' + (mark ? '<mark class="study-mark">' + value + '</mark>' : value) + '</code>';
   };
   const marked = new Marked({ gfm: true, breaks: false, renderer });
@@ -60,6 +71,8 @@ export function renderMarkdown(text, options) {
   if (memoryMode === 'lead') html = html.replace(/<table>[\s\S]*?<\/table>/g, t => t.replace(/<mark class="study-mark">([\s\S]*?)<\/mark>/g, '$1'));
   // 한글 조사가 바로 붙어 marked가 굵게 처리하지 못한 **강조**를 코드 밖에서만 굵게 바꾼다.
   html = html.split(/(<pre[\s\S]*?<\/pre>|<code>[\s\S]*?<\/code>)/).map((seg, i) => i % 2 ? seg : seg.replace(/\*\*(?=\S)((?:<\/?(?:mark|span)[^>]*>|[^*<>\n])+?)(?<=\S)\*\*/g, '<strong>$1</strong>')).join('');
+  // “…”로 인용된 시험 핵심 문장은 검정 굵은 글씨로 보여 준다(코드 밖에서만).
+  if (options?.boldQuotes) html = html.split(/(<pre[\s\S]*?<\/pre>|<code>[\s\S]*?<\/code>)/).map((seg, i) => i % 2 ? seg : seg.replace(/“([^”<]{2,80}(?:<[^>]+>[^”<]*)*)”/g, '<strong>“$1”</strong>')).join('');
   html = html.replace(/\uE000/g, '<span class="ex-mark" role="img" aria-label="기출 표시">❗</span>');
   return html.replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, '</table></div>');
 }

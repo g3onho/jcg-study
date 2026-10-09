@@ -99,3 +99,26 @@ test('감자 ❗ 항목은 본문의 해당 항목 옆에 한 번만 붙고 못 
   assert.equal((html.match(/class="ex-mark"/g) || []).length, 2);
   assert.ok(!html.includes(''));
 });
+
+test('키워드 칩 "A = B": B(설명)는 통째로, A의 영문 표기는 단서로 빨갛게 표시한다', () => {
+  assert.equal(renderStudyText('차수(Degree) = 속성 수', { keywords: ['Degree'], tailCue: true }), '차수(<span class="study-keyword">Degree</span>) = <span class="study-keyword">속성 수</span>');
+  assert.equal(renderStudyText('튜플 = 행', {}), '튜플 = 행');
+  assert.equal(renderStudyText('구조·연산·제약조건', { tailCue: true }), '구조·연산·제약조건');
+});
+
+test('영문 단서는 노란 용어와 겹치지 않으면 본문에서 빨갛게 표시한다', () => {
+  const html = renderMarkdown('- **속성(Attribute)**: 열', { keywords: ['Attribute'], memoryTerms: ['속성'] });
+  assert.match(html, /<span class="study-keyword">Attribute<\/span>/);
+  assert.match(html, /<mark class="study-mark">속성<\/mark>/);
+});
+
+test('unit 모드: 같은 용어를 문단·항목마다 한 번씩 칠하고, 인용 문장은 굵게 한다', () => {
+  const md = '- 차수(Degree)는 열. Degree 다시.\n- Degree는 또 나온다.';
+  const html = renderMarkdown(md, { keywords: ['Degree'], keywordOnce: 'unit' });
+  assert.equal((html.match(/study-keyword/g) || []).length, 2);
+  const once = renderMarkdown(md, { keywords: ['Degree'], keywordOnce: true });
+  assert.equal((once.match(/study-keyword/g) || []).length, 1);
+  const y = renderMarkdown('튜플은 행. 튜플 또.\n\n튜플 셋.', { memoryTerms: ['튜플'], memoryMode: 'unit' });
+  assert.equal((y.match(/study-mark/g) || []).length, 2);
+  assert.match(renderMarkdown('틀린다: “Degree = 열” 이다.', { boldQuotes: true }), /<strong>“Degree = 열”<\/strong>/);
+});

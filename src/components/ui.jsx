@@ -3,8 +3,8 @@ import { renderMarkdown, renderStudyText } from '../study-markdown.js';
 import { useStore, getState } from '../store.js';
 import { isPastExamProblem, hasPastExamConcept } from '../exam-tags.js';
 
-export function Md({ text, class: cls, keywords, memoryTerms, memoryMode, keywordOnce, literal = false }) {
-  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms, memoryMode, keywordOnce }), [text, keywords, memoryTerms, memoryMode, keywordOnce, literal]);
+export function Md({ text, class: cls, keywords, memoryTerms, memoryMode, keywordOnce, literal = false, tailCue = false, boldQuotes = false }) {
+  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms, memoryMode, keywordOnce, tailCue, boldQuotes }), [text, keywords, memoryTerms, memoryMode, keywordOnce, literal, tailCue, boldQuotes]);
   return <div class={'md ' + (cls || '')} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
