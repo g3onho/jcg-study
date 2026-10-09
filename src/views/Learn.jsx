@@ -16,7 +16,7 @@ export function Learn({ route }) {
     <div class="page">
       <h1>통합 개념 학습</h1>
       <p class="small muted">학습 자료의 중요도를 참고해 먼저 볼 개념을 고르세요. 기초부터 목차 순서대로 공부해도 좋습니다.</p>
-      <details class="exam-guide small"><summary>중요도 표시 안내</summary><p>⭐핵심 · 🔥보조 · 🤔후순위는 학습 자료 제작자의 추천 우선순위이며 출제 확률이 아닙니다. 여러 세부 항목을 묶은 개념은 가장 높은 중요도를 대표로 표시하고 상세에서 구분합니다. 중요도 미지정은 중요하지 않다는 뜻이 아닙니다.</p></details>
+      <details class="exam-guide small"><summary>중요도 표시 안내</summary><p>💯 · ⭐핵심 · 🔥보조 · 🤔후순위는 학습 자료 제작자의 추천 우선순위이며 출제 확률이 아닙니다. '포함'은 서로 다른 등급이 섞였거나 일부 항목만 중요도를 확인한 개념입니다. 예를 들어 응집도·결합도(⭐)와 SOLID(🔥)가 묶인 모듈 설계는 '⭐ 핵심 포함'으로 표시합니다. 상세에서 항목별 등급을 확인하세요. 중요도 미지정은 중요하지 않다는 뜻이 아닙니다.</p></details>
       <div class="filters"><select aria-label="영역" value={area} onChange={e => setArea(e.target.value)}><option value="">전체 영역</option>{Object.entries(AREA_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select><select aria-label="자료 중요도" value={priority} onChange={e => setPriority(e.target.value)}><option value="">모든 중요도</option>{Object.entries(PRIORITY_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
       {!units.length && <Empty>해당 조건의 개념이 없습니다. 영역이나 중요도를 바꿔보세요.</Empty>}
       {units.map(u => (
@@ -74,9 +74,9 @@ export function Concept({ id }) {
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
 
-      <div class="study-legend small"><span class="study-keyword">빨간 글씨: 핵심 키워드</span><span><mark class="study-mark">형광펜: 첫 핵심 정의</mark></span></div>
+      <div class="study-legend small"><span class="study-keyword">빨간 글씨: 핵심 키워드·분류명</span><span><mark class="study-mark">형광펜: 외울 답안·핵심 구절</mark></span></div>
       {x.summary && <Md text={x.summary} class="lead" {...studyText} />}
-      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} memorize {...studyText} /></section>}
+      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} memoryTerms={x.memoryTerms} {...studyText} /></section>}
       {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} {...studyText} /></section>}
       {!brief && x.examples?.map((e, i) => (
         <section key={i} class="example"><h2 class="h3">예제{x.examples.length > 1 ? ' ' + (i + 1) : ''}: {e.title}</h2>

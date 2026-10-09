@@ -73,7 +73,7 @@ export function App() {
         <button class="linkbtn" onClick={signOut}>로그아웃</button>
       </nav>
       </header>
-      {s.content ? <StudyWorkspace key={s.session.user.id + ':' + route.parts.join('/')} route={route} view={view} /> : <main id="main" tabIndex={-1}>{view}</main>}
+      {s.content && top !== 'c' ? <StudyWorkspace key={s.session.user.id + ':' + route.parts.join('/')} route={route} view={view} /> : <main id="main" tabIndex={-1}>{view}</main>}
     </div>
   );
 }

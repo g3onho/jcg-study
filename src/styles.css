@@ -43,7 +43,6 @@ main { min-width: 0; padding: 20px 24px 48px; outline: none; }
 .study-notes { min-width: 0; position: sticky; top: var(--topH, 110px); max-height: calc(100dvh - var(--topH, 110px)); overflow: auto; padding: 10px 20px 24px; border-left: 1px solid var(--line); outline: none; scroll-margin-top: var(--topH, 110px); }
 .study-notes .inkpadbox { margin-top: 0; }
 .study-notes .inkbar { top: -10px; padding: 10px 0; margin: 0; }
-.note-jump { display: inline-block; margin-bottom: 12px; }
 @media (max-width: 760px) {
   .study-layout { grid-template-columns: minmax(0, 1fr); }
   .study-notes { position: relative; top: auto; max-height: none; border-left: 0; border-top: 1px solid var(--line); padding: 12px 14px 24px; }
@@ -142,7 +141,7 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 .concept-row-title > span { display: block; font-weight: 400; margin-top: 4px; }
 .concept-priority { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 .concept-priority b { font-size: .8rem; font-weight: 600; }
-.priority-core { color: var(--bad); }
+.priority-essential, .priority-core { color: var(--bad); }
 .priority-supplement { color: var(--accent); }
 .priority-later, .priority-unrated { color: var(--muted); }
 .exam-guide { border-bottom: 1px solid var(--line); padding: 4px 0 12px; margin-bottom: 14px; color: var(--muted); }
@@ -152,12 +151,11 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 .exam-history ul { padding-left: 1.2em; margin: 4px 0; }
 .study-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 20px 0 10px; }
 .study-keyword, .concept .md strong, .concept-keywords { color: var(--bad); font-weight: 700; }
-.study-mark { color: inherit; background: #ffed8b; padding: .08em 0; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.study-mark { color: var(--ink); background: #ffed8b; padding: .08em 0; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .concept-definition { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; margin: 22px 0; }
 .concept-definition .h3 { margin-top: 0; }
 .concept-keywords { gap: 6px 16px; }
 .concept-keywords > span { border-bottom: 1px solid var(--line); }
-.note-context { margin: 6px 0; }
 @media (prefers-color-scheme: dark) { .study-mark { background: #40350e; } }
 @media (max-width: 420px) { .concept-list li a { gap: 8px; } }
 .pno { flex: none; width: 2em; font-weight: 700; color: var(--accent); }
