@@ -21,8 +21,9 @@ test('일반 사용자 콘텐츠에는 파일·출처·검증 상세가 전달�
 });
 
 test('사용자에게 중요도만 제공하고 그 출처·페이지는 제외한다', () => {
-  const source = { concepts: [{ id: 'a', memoryTerms: ['구조', '연산', '제약조건'], studyPriority: { source: { file: 'F26', path: 'secret.pdf' }, reviewed_at: 'private', topics: [{ title: '설계', level: 'core', pdf_page: 6, note: 'private' }] } }] };
+  const source = { concepts: [{ id: 'a', memoryTerms: ['구조', '연산', '제약조건'], studyKeywords: ['각 행'], studyPriority: { source: { file: 'F26', path: 'secret.pdf' }, reviewed_at: 'private', topics: [{ title: '설계', level: 'core', pdf_page: 6, note: 'private' }] } }] };
   assert.deepEqual(studentContent(source).concepts[0].studyPriority, { topics: [{ title: '설계', level: 'core' }] });
   assert.deepEqual(studentContent(source).concepts[0].memoryTerms, ['구조', '연산', '제약조건']);
+  assert.deepEqual(studentContent(source).concepts[0].studyKeywords, ['각 행']);
   assert.equal(studentContent({ concepts: [{ id: 'b' }] }).concepts[0].studyPriority, undefined);
 });

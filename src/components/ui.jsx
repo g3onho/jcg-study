@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { renderMarkdown } from '../study-markdown.js';
+import { renderMarkdown, renderStudyText } from '../study-markdown.js';
 import { useStore, getState } from '../store.js';
 import { isPastExamProblem, hasPastExamConcept } from '../exam-tags.js';
 
-export function Md({ text, class: cls, keywords, memoryTerms }) {
-  const html = useMemo(() => renderMarkdown(text, { keywords, memoryTerms }), [text, keywords, memoryTerms]);
+export function Md({ text, class: cls, keywords, memoryTerms, literal = false }) {
+  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms }), [text, keywords, memoryTerms, literal]);
   return <div class={'md ' + (cls || '')} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 

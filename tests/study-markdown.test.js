@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { renderMarkdown } from '../src/study-markdown.js';
+import { renderMarkdown, renderStudyText } from '../src/study-markdown.js';
 
 test('키워드의 긴 일치부터 강조하며 코드·원시 HTML·엔티티를 변형하지 않는다', () => {
   const html = renderMarkdown('**배열**은 인덱스로 접근. print printf footprint C++ &amp;\n\n`print 배열`\n\n```c\nprintf("배열");\n```\n\n<img src=x onerror=alert(1)>', { keywords: ['배열', 'print', 'printf', 'C++', 'amp'] });
@@ -48,7 +48,24 @@ test('선택한 SQL 명령·식은 인라인 코드에서도 강조하고 코드
   assert.match(html, /<pre><code class="language-sql">CREATE TABLE t\(id int\);/);
 });
 
-test('더 긴 빨간 키워드에 포함된 답안도 형광펜을 우선한다', () => {
-  const html = renderMarkdown('관계 데이터 모델', { keywords: ['관계 데이터 모델'], memoryTerms: ['데이터 모델'] });
-  assert.match(html, /관계 <mark class="study-mark">데이터 모델<\/mark>/);
+test('설명 속 긴 식별 특징은 내부 용어와 겹쳐도 빨간색을 유지한다', () => {
+  const html = renderMarkdown('차수: 속성의 개수. 2NF: 부분 함수 종속 제거.', { keywords: ['속성의 개수', '부분 함수 종속 제거'], memoryTerms: ['차수', '속성', '2NF', '부분 함수 종속'] });
+  for (const term of ['차수', '2NF']) assert.ok(html.includes('<mark class="study-mark">'+term+'</mark>'));
+  for (const term of ['속성의 개수', '부분 함수 종속 제거']) assert.ok(html.includes('<span class="study-keyword">'+term+'</span>'));
+});
+
+test('용어·분류는 형광펜, 정의 속 식별 특징은 빨간색으로 구분한다', () => {
+  const html = renderMarkdown('**생성 패턴(Creational)**\n\n- 싱글턴(Singleton): 인스턴스를 **하나만** 생성.', { memoryTerms: ['생성 패턴', '싱글턴'], keywords: ['하나만'] });
+  assert.ok(html.includes('<mark class="study-mark">생성 패턴</mark>'));
+  assert.ok(html.includes('<mark class="study-mark">싱글턴</mark>'));
+  assert.ok(html.includes('<span class="study-keyword">하나만</span>'));
+  assert.ok(!html.includes('<mark class="study-mark">하나만</mark>'));
+});
+
+test('키워드 요약은 밑줄·별표·HTML 문자를 보존하며 색상만 적용한다', () => {
+  for (const text of ['__init__ / self', 'super().__init__()', '* 역참조']) {
+    const html=renderStudyText(text,{memoryTerms:['__init__','역참조']});
+    assert.equal(html.replace(/<mark class="study-mark">|<\/mark>/g,''),text);
+  }
+  assert.equal(renderStudyText('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;');
 });

@@ -150,12 +150,12 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 .exam-history { flex-basis: 100%; }
 .exam-history ul { padding-left: 1.2em; margin: 4px 0; }
 .study-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 20px 0 10px; }
-.study-keyword, .concept .md strong, .concept-keywords { color: var(--bad); font-weight: 700; }
+.study-keyword { color: var(--bad); font-weight: 700; }
 .study-mark { color: var(--ink); background: #ffed8b; padding: .08em 0; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .concept-definition { border-left: 3px solid var(--accent); padding: 2px 0 2px 16px; margin: 22px 0; }
 .concept-definition .h3 { margin-top: 0; }
 .concept-keywords { gap: 6px 16px; }
-.concept-keywords > span { border-bottom: 1px solid var(--line); }
+.concept-keywords > .md { border-bottom: 1px solid var(--line); }
 @media (prefers-color-scheme: dark) { .study-mark { background: #40350e; } }
 @media (max-width: 420px) { .concept-list li a { gap: 8px; } }
 .pno { flex: none; width: 2em; font-weight: 700; color: var(--accent); }

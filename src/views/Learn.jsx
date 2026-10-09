@@ -60,7 +60,7 @@ export function Concept({ id }) {
   const probs = c.problemsByConcept[id] || [];
   const basis = (x.sources || []).filter(z => z.role === 'basis');
   const deeper = (x.sources || []).filter(z => z.role !== 'basis');
-  const studyText = { keywords: x.keywords };
+  const studyText = { keywords: x.studyKeywords || x.keywords, memoryTerms: x.memoryTerms };
   return (
     <div class="page concept">
       <div class="crumbs small"><a href="#/learn">개념 학습</a> · {unit?.title}</div>
@@ -74,9 +74,9 @@ export function Concept({ id }) {
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
 
-      <div class="study-legend small"><span class="study-keyword">빨간 글씨: 핵심 키워드·분류명</span><span><mark class="study-mark">형광펜: 외울 답안·핵심 구절</mark></span></div>
+      <div class="study-legend small"><span><mark class="study-mark">형광펜: 외워야 할 용어·분류</mark></span><span class="study-keyword">빨간 글씨: 뜻을 설명하는 핵심 특징</span></div>
       {x.summary && <Md text={x.summary} class="lead" {...studyText} />}
-      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} memoryTerms={x.memoryTerms} {...studyText} /></section>}
+      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} {...studyText} /></section>}
       {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} {...studyText} /></section>}
       {!brief && x.examples?.map((e, i) => (
         <section key={i} class="example"><h2 class="h3">예제{x.examples.length > 1 ? ' ' + (i + 1) : ''}: {e.title}</h2>
@@ -89,7 +89,7 @@ export function Concept({ id }) {
       ))}
       {x.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={x.compare} {...studyText} /></section>}
       {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" {...studyText} /></li>)}</ul></section> : null}
-      {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw concept-keywords">{x.keywords.map(k => <span key={k}>{k}</span>)}</div></section> : null}
+      {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw concept-keywords">{x.keywords.map(k => <Md key={k} text={k} literal class="inline" {...studyText} />)}</div></section> : null}
       {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} {...studyText} /></section>}
 
       {x.recall?.length ? <section><h2 class="h3">떠올려 쓰기</h2><p class="small muted">보지 않고 먼저 써 본 뒤 모범 답과 비교하세요.</p>{x.recall.map((r, i) => <Recall key={id + i} cid={id} i={i} r={r} />)}</section> : null}
