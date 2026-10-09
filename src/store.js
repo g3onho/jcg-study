@@ -145,7 +145,11 @@ export async function flush() {
       if (res && res.ok) {
         state.kv[key] = { key, value: res.value, version: res.version, updated_at: res.updated_at, device: res.device };
         if (state.kvPending[key] === p) delete state.kvPending[key];
-        else if (state.kvPending[key]) state.kvPending[key].expected = res.version;
+        else if (state.kvPending[key]) {
+          // 응답을 기다리는 동안 쓴 값을 유지해야 다음 획이 이전 응답 위에 덮이지 않는다.
+          state.kvPending[key].expected = res.version;
+          state.kv[key] = { ...state.kv[key], value: state.kvPending[key].value, pending: true, serverVersion: res.version };
+        }
       } else if (res && mergeKV(key, p.value, res.value) !== undefined) {
         // 합칠 수 있는 값(필기): 획 단위로 합쳐 서버 버전 위에 다시 저장 — 어느 기기의 필기도 사라지지 않는다
         const latest = state.kvPending[key] || p; // 저장하는 동안 더 쓴 필기가 있으면 그것까지 포함
