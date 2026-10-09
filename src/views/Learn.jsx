@@ -5,6 +5,7 @@ import { grade } from '../grading.js';
 import { Md, Code, Table, VBadges, VDetails, SourceRef, SignedImg, Empty } from '../components/ui.jsx';
 import { placeExamMarks } from '../study-markdown.js';
 import { problemLink } from '../study-links.js';
+import { feedbackLink } from './Feedback.jsx';
 import { getStudyPriority, PRIORITY_LABEL } from '../study-priority.js';
 
 export function Learn({ route }) {
@@ -79,8 +80,7 @@ export function Concept({ id }) {
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
 
-      {x.gamja?.length ? <GamjaSection sections={x.gamja} title={x.title} /> : null}
-      {x.gamja?.length ? <p class="notice small">아래는 앱에서 보충한 설명입니다. 감자 원문과 표현이 다르면 위의 감자 원문을 기준으로 보세요.</p> : null}
+      {x.gamja?.length ? <GamjaSection key={id} sections={x.gamja} title={x.title} /> : null}
       <div class="study-legend small"><span><mark class="study-mark">형광펜</mark> 시험지에 적어 내야 하는 답(용어)</span><span><span class="study-keyword">빨간 글씨</span> 문제에서 답을 찾는 단서 키워드</span>{x.examTerms?.length ? <span><span class="ex-mark">❗</span> 감자에서 기출로 표시한 항목</span> : null}</div>
       {shownUnmatched.length ? <p class="small muted ex-unmatched">❗ 감자 기출 표시 중 본문에서 위치를 못 찾은 항목: {shownUnmatched.join(' · ')}</p> : null}
       {exam.texts.summary && <Md text={exam.texts.summary} class="lead" {...redText} />}
@@ -118,6 +118,7 @@ export function Concept({ id }) {
         {x.external?.length ? <><div class="small">외부 근거(공식 문서 등) — 자료 밖에서 보충</div><ul class="srcs">{x.external.map((z, i) => <li key={i}><a href={z.url} target="_blank" rel="noopener">{z.title}</a> <span class="small muted">{z.note}</span></li>)}</ul></> : null}
         <VDetails list={x.verification} />
       </section>}
+      <p class="small"><a href={feedbackLink('/c/' + id)}>💬 이 개념 설명에 대한 의견 보내기</a></p>
       <nav class="row between small">{prev ? <a href={'#/c/' + prev}>← {c.conceptById[prev]?.title}</a> : <span />}{next ? <a href={'#/c/' + next}>{c.conceptById[next]?.title} →</a> : <span />}</nav>
     </div>
   );
@@ -178,17 +179,19 @@ function LazyMount({ children, height = 240 }) {
 }
 
 const GAMJA_FILE = { F26: '이론', F23: '코딩' };
+// 감자 요약 원문: 기본은 닫아 두고, 필요할 때만 펼쳐 본다(펼치기 전에는 이미지를 불러오지 않는다).
 function GamjaSection({ sections, title }) {
+  const pages = sections.reduce((n, sec) => n + (sec.images?.length || 0), 0);
   return (
-    <section class="gamja">
-      <h2 class="h3">감자 요약 원문 <span class="small muted">(원본 그대로)</span></h2>
-      <p class="small muted">감자 PDF의 해당 구간을 그대로 잘라 보여줍니다. ❗는 감자의 기출 표시, 💯⭐🔥🤔는 감자의 우선순위입니다. 이미지를 누르면 크게 볼 수 있습니다.</p>
+    <details class="gamja">
+      <summary><b>📄 감자 요약 원문 보기</b> <span class="small muted">· {sections.length}개 구간 · 이미지 {pages}장 (원본 그대로)</span></summary>
+      <p class="small muted">감자 PDF의 해당 구간을 그대로 잘라 보여줍니다. ❗는 감자의 기출 표시, 💯⭐🔥🤔는 감자의 우선순위입니다. 이미지를 누르면 크게 볼 수 있습니다. 아래 앱 설명은 보충 정리이므로 표현이 다르면 이 원문을 기준으로 보세요.</p>
       {sections.map((sec, i) => (
         <figure class="gamja-sec" key={i}>
           <figcaption><b>{sec.label}</b> <span class="small muted">· 감자 {GAMJA_FILE[sec.file] || ''} 요약 PDF {sec.pages?.length ? sec.pages.join('·') + '쪽' : ''}</span></figcaption>
           {sec.images.map(im => <LazyMount key={im.path} height={Math.round(im.h / 3)}><SignedImg path={im.path} alt={`${title} · ${sec.label} 감자 원문 ${im.page}쪽`} /></LazyMount>)}
         </figure>
       ))}
-    </section>
+    </details>
   );
 }

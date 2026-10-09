@@ -5,6 +5,8 @@ import { grade } from '../grading.js';
 import { Md, Code, Table, VBadges, VDetails, OriginBadge, SourceRef, SignedImg, Empty, ExamBadge } from '../components/ui.jsx';
 import { InkCodeLayer } from '../components/Ink.jsx';
 import { problemLink } from '../study-links.js';
+import { AnswerInput } from '../components/Question.jsx';
+import { feedbackLink } from './Feedback.jsx';
 
 const LANG_LABEL = { c: 'C', java: 'Java', python: 'Python', sql: 'SQL' };
 
@@ -27,6 +29,7 @@ export function Practice({ route }) {
   return (
     <div class="page">
       <h1>문제 풀이</h1>
+      <a class="card exam-promo" href="#/exam"><b>📝 연도·회차별 모의시험</b><span class="small muted">한 회차를 실제 시험처럼 한 번에 풀고, 제출 후 한꺼번에 채점·해설을 봅니다.</span></a>
       <div class="filters">
         <select aria-label="영역" value={area} onChange={e => setArea(e.target.value)}><option value="">전체 영역</option>{Object.entries(AREA_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
         <select aria-label="언어" value={lang} onChange={e => setLang(e.target.value)}><option value="">전체 언어</option>{['c', 'java', 'python', 'sql'].map(k => <option key={k} value={k}>{LANG_LABEL[k]}</option>)}</select>
@@ -196,32 +199,13 @@ export function Problem({ id, route, ink, inkPrefs }) {
         <VDetails list={p.verification} />
       </section>}
 
+      <p class="small"><a href={feedbackLink('/p/' + id)}>💬 이 문제의 정답·해설이 이상하면 의견 보내기</a></p>
       {st?.attempts?.length ? (
         <details class="history"><summary>내 풀이 기록 ({st.attempts.filter(a => a.result !== 'revealed').length})</summary>
           <ul>{st.attempts.map(a => <li key={a.id} class="small">{new Date(a.at).toLocaleString('ko-KR')} · {a.result}{a.hints ? ` · 힌트 ${a.hints}` : ''}{a.revealed ? ' · 해설 먼저 봄' : ''}{st.causes[a.id] ? ' · 원인: ' + st.causes[a.id] : ''}</li>)}</ul>
         </details>
       ) : null}
     </div>
-  );
-}
-
-function AnswerInput({ spec, ans, update }) {
-  if (spec.mode === 'parts') {
-    return (
-      <div class="partsin">
-        {spec.parts.map((pt, i) => (
-          <label key={i} class="partin"><span>{pt.label || '답'}</span>
-            <input type="text" autoComplete="off" autoCapitalize="off" spellcheck={false} value={ans.parts[i] || ''}
-              onInput={e => { const parts = [...ans.parts]; parts[i] = e.target.value; update({ ...ans, parts }); }} />
-          </label>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <textarea class="mono" rows={spec.mode === 'self' ? 6 : 4} autoComplete="off" autoCapitalize="off" spellcheck={false} aria-label="답안 입력"
-      placeholder={spec.mode === 'output' ? '출력 결과를 그대로 입력 (줄바꿈·공백 포함)' : '답안 입력'}
-      value={ans.text} onInput={e => update({ ...ans, text: e.target.value })} />
   );
 }
 
@@ -235,7 +219,7 @@ function CausePicker({ pid, attempt }) {
   );
 }
 
-function Explanation({ p, spec }) {
+export function Explanation({ p, spec }) {
   const e = p.explanation || {};
   return (
     <section class="expl">

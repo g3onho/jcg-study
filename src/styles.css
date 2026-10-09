@@ -201,7 +201,9 @@ details summary { cursor: pointer; min-height: 32px; }
 .concept-title .concept-priority { font-size: .95rem; margin-left: 4px; }
 .concept-title .concept-priority b { font-size: .9rem; }
 .concept-title .exam-tag { font-size: .85rem; margin-inline: 0; }
-.gamja { margin: 18px 0; }
+.gamja { margin: 14px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 2px 14px; }
+.gamja > summary { min-height: 44px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; padding: 6px 0; }
+.gamja[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 8px; }
 .gamja-sec { margin: 14px 0; padding: 0; }
 .gamja-sec figcaption { padding: 6px 0; }
 .gamja-sec .imgbtn { width: 100%; }
@@ -213,3 +215,50 @@ details summary { cursor: pointer; min-height: 32px; }
 .md li > strong:first-child, .md p > strong:first-child, .md td > strong:first-child, .md th > strong:first-child { font-weight: 650; } /* 항목 이름(맨 앞 굵은 글씨)만 굵게 */
 .ex-mark { color: var(--bad); font-weight: 700; margin-inline: 2px; font-style: normal; }
 .ex-unmatched { margin: 6px 0 12px; }
+
+/* 모의시험 */
+.exam-promo { display: flex; flex-direction: column; gap: 2px; border-left: 5px solid var(--accent); }
+.exam-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.exam-list a { display: flex; flex-direction: column; gap: 2px; min-height: 64px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none; color: var(--ink); }
+.exam-list a:hover, .exam-list a.exam-on { border-color: var(--accent); }
+.exam-list a.exam-on { border-left-width: 5px; }
+.exam-name { font-weight: 700; }
+.exam-start .exam-time { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 12px 0 4px; }
+.check-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.check-inline.off { opacity: .5; }
+.check-inline input[type=number] { width: 5.5em; }
+.check-inline input[type=checkbox] { width: 22px; height: 22px; }
+.xbar { position: sticky; top: var(--topH, 110px); z-index: 11; background: var(--bg); border-bottom: 2px solid var(--accent); padding: 6px 0 8px; margin-bottom: 10px; }
+.xbar-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.xtitle { flex: 1 1 120px; min-width: 0; overflow-wrap: anywhere; }
+.xclock { font: 700 1.05rem var(--mono); font-variant-numeric: tabular-nums; color: var(--accent); }
+.xclock.low { color: var(--bad); }
+.xnav { display: flex; gap: 4px; margin-top: 6px; overflow-x: auto; padding-bottom: 2px; }
+.xchip { flex: none; min-width: 38px; min-height: 38px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.xchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.xconfirm { margin-top: 8px; padding: 10px 12px; background: var(--warn-bg); border-left: 4px solid var(--warn); border-radius: 6px; }
+.xconfirm p { margin: 0 0 6px; }
+.xq { scroll-margin-top: calc(var(--topH, 110px) + 96px); margin: 18px 0 26px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+.xq .h3 { margin-top: 0; }
+.exam-score { text-align: center; }
+.exam-score .row { justify-content: center; }
+.exam-score-n { font-size: 2.4rem; font-weight: 800; color: var(--accent); line-height: 1.2; }
+.xr { border: 2px solid var(--line); border-radius: var(--radius); padding: 2px 12px 10px; margin: 10px 0; background: var(--panel); }
+.xr > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 48px; }
+.xr-state { margin-left: auto; font-weight: 700; }
+.xr.r-correct, .xr.r-self_correct { border-color: var(--ok); } .xr.r-wrong, .xr.r-self_wrong { border-color: var(--bad); } .xr.r-partial, .xr.r-self_partial { border-color: var(--warn); }
+.xr.r-correct, .xr.r-wrong, .xr.r-partial, .xr.r-self_correct, .xr.r-self_wrong, .xr.r-self_partial { background: var(--panel); }
+.selfgrade .checks { list-style: none; padding-left: 0; }
+
+/* 관리자·피드백 */
+.feedback-form { display: grid; gap: 12px; max-width: 640px; }
+.feedback-form label { display: grid; gap: 4px; font-weight: 600; }
+.feedback-form label.check-inline { display: flex; font-weight: 400; }
+.fb-msg { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+.feedback-mine li { margin: 12px 0; }
+.feedback-inbox { list-style: none; padding: 0; margin: 0; }
+.feedback-inbox .card { margin: 10px 0; }
+.feedback-inbox .card.fb-new { border-left: 5px solid var(--accent); }
+b.fb-new { color: var(--accent); } b.fb-done { color: var(--ok); }
+.row.tight { margin: 0; gap: 6px; }
+.admin .tbl table { min-width: 760px; }

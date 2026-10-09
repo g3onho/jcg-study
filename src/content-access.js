@@ -1,3 +1,4 @@
+import { heldProblemIds } from './exam.js';
 // 원본 번들은 관리자만 받는다. 사용자용 파일은 허용한 학습 필드만 새로 구성한다.
 const pick = (obj, keys) => Object.fromEntries(keys.filter(k => obj?.[k] !== undefined).map(k => [k, obj[k]]));
 const verification = list => (list || []).map(v => ({ type: v.type }));
@@ -10,6 +11,7 @@ const grading = g => {
 };
 
 export function studentContent(c) {
+  const held = heldProblemIds(c); // 풀리지 않은 정답 충돌이 있는 문제는 모의시험 점수에서 뺀다(충돌 상세는 사용자용 파일에 넣지 않는다)
   const out = {
     ...pick(c, ['version', 'built_at']), files: [], conflicts: [], coverage: [],
     toc: (c.toc || []).map(u => pick(u, ['id', 'area', 'title', 'std', 'concepts'])),
@@ -26,6 +28,7 @@ export function studentContent(c) {
     problems: (c.problems || []).map(p => ({
       ...pick(p, ['id', 'set', 'setTitle', 'no', 'origin', 'area', 'lang', 'title', 'prompt', 'code', 'notice', 'reconstructed', 'answer_display', 'concepts', 'tags', 'status', 'order', 'hints', 'ai_notes']),
       ...(p.tables ? { tables: p.tables.map(table) } : {}),
+      ...(held.has(p.id) ? { scoreHold: true } : {}),
       grading: grading(p.grading), verification: verification(p.verification),
       explanation: { ...pick(p.explanation, ['summary', 'steps', 'trace', 'points', 'pitfalls', 'format', 'note']), ...(p.explanation?.trace_table ? { trace_table: table(p.explanation.trace_table) } : {}) },
     })),

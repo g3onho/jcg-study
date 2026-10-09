@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { handleAccount } from '../supabase/functions/account-access/handler.js';
 
 const request = (body, token) => new Request('https://example.com/account-access', { method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body) });
-const registration = { action: 'register', username: 'learner_1', email: 'learner@example.com', password: 'test-long-password' };
+const registration = { action: 'register', username: 'learner_1', password: 'test-long-password' };
 function backend(role = 'student') {
   const calls = [];
   const admin = {
@@ -68,4 +68,27 @@ test('등록 중 DB 저장이 실패하면 방금 만든 계정만 복구 처리
   db.admin.from = table => { const query = from(table); if (table === 'login_profiles') query.insert = async () => ({ error: true }); return query; };
   const result = await handleAccount(request(registration, 'test-token'), db);
   assert.equal(result.status, 500); assert.ok(db.calls.some(c => c.deleted === 'new'));
+});
+
+test('등록은 이메일 없이 아이디만으로 되고 내부용 주소로 계정을 만든다', async () => {
+  const db = backend('admin'); const result = await handleAccount(request({ ...registration, email: 'ignored@example.com' }, 'test-token'), db);
+  assert.equal(result.status, 200);
+  assert.equal(db.calls.find(c => c.email).email, 'learner_1@users.jcg-study.invalid');
+});
+test('차단된 관리자는 등록 API를 쓸 수 없다', async () => {
+  const db = backend('admin'); const from = db.admin.from;
+  db.admin.from = table => { const q = from(table); if (table === 'allowed_users') q.maybeSingle = async () => ({ data: { role: 'admin', disabled: true } }); return q; };
+  assert.equal((await handleAccount(request(registration, 'test-token'), db)).status, 403);
+});
+test('비밀번호 재설정: 일반 사용자 호출 차단, 관리자 계정 대상 차단, 학생 계정만 변경', async () => {
+  const reset = { action: 'reset_password', username: 'learner_1', password: 'another-long-password' };
+  assert.equal((await handleAccount(request(reset, 'test-token'), backend())).status, 403);
+  assert.equal((await handleAccount(request(reset), backend('admin'))).status, 401);
+  const db = backend('admin'); const from = db.admin.from; let updated = null; let roleCalls = 0;
+  db.admin.auth.admin.updateUserById = async (id, attrs) => { updated = { id, attrs }; return {}; };
+  db.admin.from = table => { const q = from(table); if (table === 'login_profiles') q.maybeSingle = async () => ({ data: { user_id: 'student-1' } }); if (table === 'allowed_users') q.maybeSingle = async () => ({ data: { role: roleCalls++ === 0 ? 'admin' : 'student' } }); return q; };
+  assert.equal((await handleAccount(request(reset, 'test-token'), db)).status, 200);
+  assert.deepEqual(updated, { id: 'student-1', attrs: { password: 'another-long-password' } });
+  const adminTarget = backend('admin'); adminTarget.admin.from = table => { const q = from.call(adminTarget.admin, table); if (table === 'login_profiles') q.maybeSingle = async () => ({ data: { user_id: 'x' } }); return q; };
+  assert.equal((await handleAccount(request(reset, 'test-token'), adminTarget)).status, 403);
 });

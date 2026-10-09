@@ -3,6 +3,10 @@ import { useStore, getState, exportBackup, importBackup, resolveConflict, signOu
 import { APP_VERSION, EXAM_LABEL } from '../config.js';
 import { studentContent } from '../content-access.js';
 
+const INTERNAL = '@users.jcg-study.invalid';
+// 이메일 없이 등록한 계정은 내부용 주소 대신 아이디로 보여 준다.
+export const displayName = user => { const e = user?.email || ''; return e.endsWith(INTERNAL) ? e.slice(0, -INTERNAL.length) : e; };
+
 export function Settings() {
   const s = useStore();
   const [msg, setMsg] = useState(null);
@@ -23,7 +27,7 @@ export function Settings() {
     <div class="page">
       <h1>설정·백업</h1>
       <section><h2 class="h3">계정</h2>
-        <p>{s.session?.user?.email} · {s.isAdmin ? '관리자' : '사용자'} · 이 기기: {s.device} · 앱 {APP_VERSION} · 콘텐츠 {s.content?.version || '-'}</p>
+        <p>{displayName(s.session?.user)} · {s.isAdmin ? '관리자' : '사용자'} · 이 기기: {s.device} · 앱 {APP_VERSION} · 콘텐츠 {s.content?.version || '-'}</p>
         <p class="small muted">시험 기준일: {EXAM_LABEL}</p>
         <button class="btn" onClick={signOut}>로그아웃</button>
       </section>
@@ -55,7 +59,7 @@ export function Settings() {
         </ul>
       </section>
 
-      {s.isAdmin && <AccountRegistration />}
+      {s.isAdmin && <section><h2 class="h3">계정 관리</h2><p class="small">사용자 계정 등록, 사용자 현황, 받은 의견은 <a href="#/admin">관리자 화면</a>에서 봅니다.</p></section>}
       {s.isAdmin && <section><h2 class="h3">콘텐츠 가져오기(관리)</h2>
         <p class="small">콘텐츠 패키지를 비공개 저장소로 올립니다. 관리자는 원본과 출처를 열람하고, 일반 사용자는 출처 정보가 제외된 문제·코드·표로 학습합니다. 원문 이미지는 관리자 전용입니다.</p>
         <button class="btn" onClick={async () => { try { await getState().api.uploadFile('content/student.json', new Blob([JSON.stringify(studentContent(s.content))], { type: 'application/json' }), 'application/json'); setMsg('사용자용 학습 콘텐츠를 준비했습니다.'); } catch { setMsg('사용자용 콘텐츠 준비에 실패했습니다. 다시 시도하세요.'); } }}>현재 콘텐츠로 사용자용 학습 파일 만들기</button>
@@ -65,27 +69,6 @@ export function Settings() {
       </section>}
     </div>
   );
-}
-
-function AccountRegistration() {
-  const [busy, setBusy] = useState(false); const [message, setMessage] = useState('');
-  async function submit(e) {
-    e.preventDefault(); const form = e.currentTarget; setBusy(true); setMessage('');
-    try {
-      await getState().api.registerUser({ email: form.email.value.trim(), username: form.username.value.trim().toLowerCase(), password: form.password.value });
-      form.reset(); setMessage('사용자 계정을 등록했습니다. 아이디와 초기 비밀번호를 사용자에게 전달하세요.');
-    } catch (err) { setMessage(err.message); }
-    finally { setBusy(false); }
-  }
-  return <section><h2 class="h3">사용자 계정 등록</h2><p class="small muted">이메일로 계정을 등록하고 아이디로 로그인합니다. 새 계정은 일반 사용자이며 원본·출처·자료 관리에 접근할 수 없습니다.</p>
-    <form class="account-form" onSubmit={submit}>
-      <label>이메일<input name="email" type="email" autoComplete="off" required /></label>
-      <label>로그인 아이디<input name="username" type="text" pattern="[a-z0-9_]{3,30}" minLength={3} maxLength={30} autoCapitalize="none" autoComplete="off" spellcheck={false} title="영문 소문자·숫자·밑줄 3~30자" required /></label>
-      <label>초기 비밀번호<input name="password" type="password" minLength={12} maxLength={72} autoComplete="new-password" required /></label>
-      <button class="btn primary" disabled={busy}>{busy ? '등록 중…' : '사용자 등록'}</button>
-    </form>
-    {message && <p class="small" role="status">{message}</p>}
-  </section>;
 }
 
 function Importer({ files }) {

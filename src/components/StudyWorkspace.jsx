@@ -6,7 +6,7 @@ export function StudyWorkspace({ route, view }) {
   const s = useStore();
   const [top, id] = route.parts;
   // 기존 문제 필기 키를 유지해 아래쪽 연습지의 필기를 그대로 옮긴다.
-  const ink = useInk(top === 'p' ? id : top === 'c' ? 'concept:' + id : 'page:' + (top || 'home'));
+  const ink = useInk(top === 'p' ? id : top === 'c' ? 'concept:' + id : top === 'exam' && id ? 'exam:' + id : 'page:' + (top || 'home'));
   const [inkPrefs, setInkPrefs] = useInkPrefs();
   const hasCode = top === 'p' && !!s.content.problemById[id]?.code;
   return <div class="study-layout">

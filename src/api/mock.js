@@ -53,7 +53,26 @@ export function makeMockApi() {
     async whoami() { return read('session', null)?.user; },
     async isAllowed() { return true; },
     async isAdmin() { return read('session', null)?.user?.id === 'mock-admin'; },
-    async registerUser() { if (!await api.isAdmin()) throw new Error('Forbidden'); return { ok: true }; },
+    async registerUser({ username }) {
+      if (!await api.isAdmin()) throw new Error('Forbidden');
+      const us = read('users', []); if (us.some(u => u.username === username)) throw new Error('계정 등록에 실패했습니다. 아이디 중복과 서버 설정을 확인하세요.');
+      us.push({ user_id: 'mock-' + username, username, role: 'student', disabled: false, created_at: new Date().toISOString(), last_sign_in_at: null, attempts: 0, correct: 0, problems_tried: 0, concepts_read: 0, exam_runs: 0, last_activity: null });
+      write('users', us); return { ok: true };
+    },
+    async resetPassword({ username }) { if (!await api.isAdmin()) throw new Error('Forbidden'); if (!read('users', []).some(u => u.username === username)) throw new Error('비밀번호 재설정에 실패했습니다. 아이디(일반 사용자만 가능)를 확인하세요.'); return { ok: true }; },
+    async adminOverview() {
+      await net(); if (!await api.isAdmin()) throw new Error('not allowed');
+      return [{ user_id: 'mock-admin', username: 'test_admin', role: 'admin', disabled: false, created_at: '2026-09-01T00:00:00Z', last_sign_in_at: new Date().toISOString(), attempts: 12, correct: 9, problems_tried: 10, concepts_read: 4, exam_runs: 1, last_activity: new Date().toISOString() }, ...read('users', [])];
+    },
+    async setUserDisabled(id, disabled) { await net(); write('users', read('users', []).map(u => u.user_id === id ? { ...u, disabled } : u)); },
+    async adminFeedback() { await net(); if (!await api.isAdmin()) throw new Error('not allowed'); return read('feedback', []).slice().reverse().map(f => ({ ...f, username: f.user_id === 'mock-admin' ? 'test_admin' : 'test_user' })); },
+    async setFeedbackStatus(id, status) { await net(); write('feedback', read('feedback', []).map(f => f.id === id ? { ...f, status } : f)); },
+    async submitFeedback(f) {
+      await net(); const me = read('session', null)?.user?.id; const all = read('feedback', []);
+      all.push({ id: 'fb' + Date.now(), user_id: me, category: f.category, message: f.message, context: f.context || null, device: f.device, app_version: f.appVersion, content_version: f.contentVersion, status: 'new', created_at: new Date().toISOString() });
+      write('feedback', all);
+    },
+    async myFeedback() { await net(); const me = read('session', null)?.user?.id; return read('feedback', []).filter(f => f.user_id === me).reverse(); },
   };
   return api;
 }

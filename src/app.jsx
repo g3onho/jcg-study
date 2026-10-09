@@ -7,11 +7,14 @@ import { Login } from './views/Login.jsx';
 import { Home, Focus } from './views/Home.jsx';
 import { Learn, Concept } from './views/Learn.jsx';
 import { Practice, Problem } from './views/Practice.jsx';
+import { Exam, ExamList } from './views/Exam.jsx';
 import { Review } from './views/Review.jsx';
 import { Progress } from './views/Progress.jsx';
 import { Sources, PdfView } from './views/Sources.jsx';
 import { Search } from './views/Search.jsx';
 import { Settings } from './views/Settings.jsx';
+import { Feedback } from './views/Feedback.jsx';
+import { Admin } from './views/Admin.jsx';
 import { StudyWorkspace } from './components/StudyWorkspace.jsx';
 
 export function parseHash() {
@@ -27,8 +30,8 @@ export function useRoute() {
 }
 
 const NAV = [
-  ['', '오늘의 학습', '🏠'], ['learn', '개념 학습', '📘'], ['practice', '문제 풀이', '✏️'], ['review', '오답·복습', '🔁'],
-  ['progress', '학습 현황', '📈'], ['sources', '자료·검증', '📚'], ['settings', '설정·백업', '⚙️'],
+  ['', '오늘의 학습', '🏠'], ['learn', '개념 학습', '📘'], ['practice', '문제 풀이', '✏️'], ['exam', '모의시험', '📝'], ['review', '오답·복습', '🔁'],
+  ['progress', '학습 현황', '📈'], ['sources', '자료·검증', '📚'], ['feedback', '의견 보내기', '💬'], ['settings', '설정·백업', '⚙️'], ['admin', '관리자', '🛠️'],
 ];
 
 export function App() {
@@ -48,12 +51,15 @@ export function App() {
       case 'c': view = <Concept id={route.parts[1]} />; break;
       case 'practice': view = <Practice route={route} />; break;
       case 'p': view = <Problem id={route.parts[1]} route={route} />; break;
+      case 'exam': view = route.parts[1] ? <Exam id={route.parts[1]} /> : <ExamList />; break;
       case 'review': view = <Review route={route} />; break;
       case 'progress': view = <Progress />; break;
       case 'sources': view = s.isAdmin ? <Sources route={route} /> : <AccessDenied />; break;
       case 'pdf': view = s.isAdmin ? <PdfView id={route.parts[1]} route={route} /> : <AccessDenied />; break;
       case 'search': view = <Search route={route} />; break;
       case 'settings': view = <Settings />; break;
+      case 'feedback': view = <Feedback route={route} />; break;
+      case 'admin': view = s.isAdmin ? <Admin route={route} /> : <AccessDenied />; break;
       default: view = <div class="page"><p>없는 화면입니다. <a href="#/">처음으로</a></p></div>;
     }
   }
@@ -69,7 +75,7 @@ export function App() {
         </form>
         <SaveStatus />
       <nav class="menu" aria-label="주 메뉴">
-        {NAV.filter(([k]) => s.isAdmin || k !== 'sources').map(([k, label, ic]) => <a key={k} href={'#/' + k} class={top === k || (k === 'learn' && top === 'c') || (k === 'practice' && top === 'p') || (k === 'sources' && top === 'pdf') ? 'on' : ''}><span aria-hidden="true">{ic}</span> {label}</a>)}
+        {NAV.filter(([k]) => s.isAdmin || (k !== 'sources' && k !== 'admin')).map(([k, label, ic]) => <a key={k} href={'#/' + k} class={top === k || (k === 'learn' && top === 'c') || (k === 'practice' && top === 'p') || (k === 'sources' && top === 'pdf') ? 'on' : ''}><span aria-hidden="true">{ic}</span> {label}</a>)}
         <button class="linkbtn" onClick={signOut}>로그아웃</button>
       </nav>
       </header>

@@ -1,5 +1,7 @@
 const origins = new Set(['https://g3onho.github.io', 'http://127.0.0.1:5173', 'http://localhost:5173']);
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
+export const INTERNAL_EMAIL_DOMAIN = 'users.jcg-study.invalid';
+export const internalEmail = username => `${username}@${INTERNAL_EMAIL_DOMAIN}`;
 
 export async function handleAccount(request, { admin, auth }) {
   const origin = request.headers.get('origin');
@@ -41,15 +43,27 @@ export async function handleAccount(request, { admin, auth }) {
       return reply({ session: { access_token: signed.data.session.access_token, refresh_token: signed.data.session.refresh_token } });
     }
 
-    if (body.action !== 'register') return reply({ error: 'Invalid action' }, 400);
+    if (body.action !== 'register' && body.action !== 'reset_password') return reply({ error: 'Invalid action' }, 400);
+    // 관리자 작업: 호출자가 관리자(allowed_users.role = admin, 차단 아님)인지 서버에서 다시 확인한다.
     const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
     if (!token) return reply({ error: 'Not authorized' }, 401);
     const identity = await admin.auth.getUser(token);
     if (identity.error || !identity.data.user) return reply({ error: 'Not authorized' }, 401);
-    const role = await admin.from('allowed_users').select('role').eq('user_id', identity.data.user.id).maybeSingle();
-    if (role.error || role.data?.role !== 'admin') return reply({ error: 'Forbidden' }, 403);
-    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || body.password.length < 12) return reply({ error: 'Invalid input' }, 400);
+    const role = await admin.from('allowed_users').select('role, disabled').eq('user_id', identity.data.user.id).maybeSingle();
+    if (role.error || role.data?.role !== 'admin' || role.data?.disabled === true) return reply({ error: 'Forbidden' }, 403);
+    if (body.password.length < 12) return reply({ error: 'Invalid input' }, 400);
+
+    if (body.action === 'reset_password') {
+      const target = await admin.from('login_profiles').select('user_id').eq('username', username).maybeSingle();
+      if (target.error || !target.data) return reply({ error: 'Account not found' }, 404);
+      const targetRole = await admin.from('allowed_users').select('role').eq('user_id', target.data.user_id).maybeSingle();
+      if (targetRole.error || targetRole.data?.role === 'admin') return reply({ error: 'Forbidden' }, 403); // 관리자 비밀번호는 여기서 바꾸지 않는다
+      const updated = await admin.auth.admin.updateUserById(target.data.user_id, { password: body.password });
+      return updated.error ? reply({ error: 'Password reset failed' }, 500) : reply({ ok: true });
+    }
+
+    // 등록: 이메일은 받지 않는다. 인증 시스템이 요구하는 내부용 주소를 아이디로 만들며, 메일은 발송되지 않는다.
+    const email = internalEmail(username);
     const exists = await admin.from('login_profiles').select('user_id').eq('username', username).maybeSingle();
     if (exists.error || exists.data) return reply({ error: 'Account registration failed' }, 409);
     const created = await admin.auth.admin.createUser({ email, password: body.password, email_confirm: true });
