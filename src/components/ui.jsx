@@ -3,8 +3,8 @@ import { renderMarkdown, renderStudyText } from '../study-markdown.js';
 import { useStore, getState } from '../store.js';
 import { isPastExamProblem, hasPastExamConcept } from '../exam-tags.js';
 
-export function Md({ text, class: cls, keywords, memoryTerms, literal = false }) {
-  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms }), [text, keywords, memoryTerms, literal]);
+export function Md({ text, class: cls, keywords, memoryTerms, memoryMode, literal = false }) {
+  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms, memoryMode }), [text, keywords, memoryTerms, memoryMode, literal]);
   return <div class={'md ' + (cls || '')} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
@@ -62,7 +62,7 @@ export function OriginBadge({ origin }) {
 export function ExamBadge({ problem, conceptId }) {
   const s = useStore();
   const shown = problem ? isPastExamProblem(problem) : hasPastExamConcept(s.content, conceptId);
-  return shown ? <span class="vb exam-tag" title={problem ? '복원 기출 문제' : '수록된 복원 기출에 연결된 개념'}>기출</span> : null;
+  return shown ? <span class="vb exam-tag" title={problem ? '복원 기출 문제' : '수록된 복원 기출에 연결된 개념'}><span aria-hidden="true">❗</span> 기출</span> : null;
 }
 
 export function SourceRef({ src, label }) {

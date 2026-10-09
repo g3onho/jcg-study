@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { useStore, addEvent, setKV } from '../store.js';
 import { problemStates, conceptStates, LEVEL_LABEL, AREA_LABEL } from '../engine.js';
 import { grade } from '../grading.js';
-import { Md, Code, Table, VBadges, VDetails, SourceRef, Empty } from '../components/ui.jsx';
+import { Md, Code, Table, VBadges, VDetails, SourceRef, SignedImg, Empty, ExamBadge } from '../components/ui.jsx';
 import { problemLink } from '../study-links.js';
 import { getStudyPriority, PRIORITY_LABEL } from '../study-priority.js';
 
@@ -29,7 +29,7 @@ export function Learn({ route }) {
             const checksOk = x.checks?.length && x.checks.every(q => cs?.checks?.[q.id]?.result === 'correct');
             return (
               <li key={cid}><a href={'#/c/' + cid}>
-                <span class="concept-row-title">{x.title}<span class="small muted">{cs?.readAt ? (checksOk ? '확인 문제 통과' : '읽어봄') : '미확인'} · 연결 문제 {solved}/{n}</span></span>
+                <span class="concept-row-title">{x.title}<ExamBadge conceptId={cid} /><span class="small muted">{cs?.readAt ? (checksOk ? '확인 문제 통과' : '읽어봄') : '미확인'} · 연결 문제 {solved}/{n}</span></span>
                 {getStudyPriority(x) !== 'unrated' && <PrioritySummary concept={x} />}
               </a></li>);
           })}</ul>
@@ -61,36 +61,39 @@ export function Concept({ id }) {
   const basis = (x.sources || []).filter(z => z.role === 'basis');
   const deeper = (x.sources || []).filter(z => z.role !== 'basis');
   const studyText = { keywords: x.studyKeywords || x.keywords, memoryTerms: x.memoryTerms };
+  const redText = { keywords: x.studyKeywords || x.keywords }; // 형광펜은 핵심 정의에서만 쓴다
   return (
     <div class="page concept">
       <div class="crumbs small"><a href="#/learn">개념 학습</a> · {unit?.title}</div>
-      <h1>{x.title}</h1>
-      <div class="concept-overview"><PrioritySummary concept={x} />
-        {!!x.studyPriority?.topics?.length && <details class="exam-history small"><summary>세부 항목 중요도</summary><ul>{x.studyPriority.topics.map((t, i) => <li key={i}><b class={'priority-' + t.level}>{PRIORITY_LABEL[t.level] || PRIORITY_LABEL.unrated}</b> · {t.title}</li>)}</ul><p class="muted">학습 자료의 추천 우선순위이며 출제 확률이 아닙니다. 표시가 없는 세부 항목은 중요도를 임의로 지정하지 않았습니다.</p>{s.isAdmin && x.studyPriority.source && <ul class="srcs"><SourceRef src={{ file: x.studyPriority.source.file, pdf_page: x.studyPriority.source.legend_page, note: '학습 우선순위 범례 · ' + x.studyPriority.source.version }} /></ul>}</details>}
-      </div>
+      <h1 class="concept-title">{x.title}<PrioritySummary concept={x} /><ExamBadge conceptId={id} /></h1>
+      {!!x.studyPriority?.topics?.length && <div class="concept-overview">
+        <details class="exam-history small"><summary>세부 항목 중요도</summary><ul>{x.studyPriority.topics.map((t, i) => <li key={i}><b class={'priority-' + t.level}>{PRIORITY_LABEL[t.level] || PRIORITY_LABEL.unrated}</b> · {t.title}</li>)}</ul><p class="muted">학습 자료의 추천 우선순위이며 출제 확률이 아닙니다. 표시가 없는 세부 항목은 중요도를 임의로 지정하지 않았습니다.</p>{s.isAdmin && x.studyPriority.source && <ul class="srcs"><SourceRef src={{ file: x.studyPriority.source.file, pdf_page: x.studyPriority.source.legend_page, note: '학습 우선순위 범례 · ' + x.studyPriority.source.version }} /></ul>}</details>
+      </div>}
       <div class="meta"><VBadges list={x.verification} /></div>
       <p class="small muted">{x.origin_note || '여러 자료를 바탕으로 구축 단계에서 정리한 설명(AI 작성·검토)'}</p>
       {x.prereq?.length ? <p class="small">먼저 보면 좋은 개념: {x.prereq.map((p, i) => <span key={p}>{i ? ', ' : ''}<a href={'#/c/' + p}>{c.conceptById[p]?.title}</a></span>)}</p> : null}
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
 
-      <div class="study-legend small"><span><mark class="study-mark">형광펜: 외워야 할 용어·분류</mark></span><span class="study-keyword">빨간 글씨: 뜻을 설명하는 핵심 특징</span></div>
-      {x.summary && <Md text={x.summary} class="lead" {...studyText} />}
-      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} {...studyText} /></section>}
-      {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} {...studyText} /></section>}
+      {x.gamja?.length ? <GamjaSection sections={x.gamja} title={x.title} /> : null}
+      {x.gamja?.length ? <p class="notice small">아래는 앱에서 보충한 설명입니다. 감자 원문과 표현이 다르면 위의 감자 원문을 기준으로 보세요.</p> : null}
+      <div class="study-legend small"><span><mark class="study-mark">형광펜: 핵심 정의의 항목별 첫 암기 용어만</mark></span><span class="study-keyword">빨간 글씨: 뜻을 설명하는 핵심 특징</span></div>
+      {x.summary && <Md text={x.summary} class="lead" {...redText} />}
+      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} {...studyText} memoryMode="lead" /></section>}
+      {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} {...redText} /></section>}
       {!brief && x.examples?.map((e, i) => (
         <section key={i} class="example"><h2 class="h3">예제{x.examples.length > 1 ? ' ' + (i + 1) : ''}: {e.title}</h2>
           {e.code && <Code code={e.code} lang={e.lang} />}
           {e.output != null && <div class="small">실행 결과{e.env ? ` (${e.env})` : ''}<pre class="pre">{e.output}</pre></div>}
           {e.trace && <Table {...e.trace} />}
-          {e.explain && <Md text={e.explain} {...studyText} />}
+          {e.explain && <Md text={e.explain} {...redText} />}
           {e.verified && <div class="small muted">✔ {e.verified}</div>}
         </section>
       ))}
-      {x.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={x.compare} {...studyText} /></section>}
-      {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" {...studyText} /></li>)}</ul></section> : null}
-      {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw concept-keywords">{x.keywords.map(k => <Md key={k} text={k} literal class="inline" {...studyText} />)}</div></section> : null}
-      {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} {...studyText} /></section>}
+      {x.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={x.compare} {...redText} /></section>}
+      {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" {...redText} /></li>)}</ul></section> : null}
+      {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw concept-keywords">{x.keywords.map(k => <Md key={k} text={k} literal class="inline" {...redText} />)}</div></section> : null}
+      {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} {...redText} /></section>}
 
       {x.recall?.length ? <section><h2 class="h3">떠올려 쓰기</h2><p class="small muted">보지 않고 먼저 써 본 뒤 모범 답과 비교하세요.</p>{x.recall.map((r, i) => <Recall key={id + i} cid={id} i={i} r={r} />)}</section> : null}
       {x.checks?.length ? <section><h2 class="h3">확인 문제</h2>{x.checks.map(q => <Check key={q.id} cid={id} q={q} prev={cs?.checks?.[q.id]} />)}</section> : null}
@@ -156,5 +159,31 @@ function Check({ cid, q, prev }) {
         </div>
       )}
     </div>
+  );
+}
+
+function LazyMount({ children, height = 240 }) {
+  const ref = useRef(null); const [on, setOn] = useState(typeof IntersectionObserver !== 'function');
+  useEffect(() => {
+    if (on || !ref.current) return;
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setOn(true); io.disconnect(); } }, { rootMargin: '600px 0px' });
+    io.observe(ref.current); return () => io.disconnect();
+  }, [on]);
+  return <div ref={ref} style={on ? undefined : { minHeight: height + 'px' }}>{on ? children : null}</div>;
+}
+
+const GAMJA_FILE = { F26: '이론', F23: '코딩' };
+function GamjaSection({ sections, title }) {
+  return (
+    <section class="gamja">
+      <h2 class="h3">감자 요약 원문 <span class="small muted">(원본 그대로)</span></h2>
+      <p class="small muted">감자 PDF의 해당 구간을 그대로 잘라 보여줍니다. ❗는 감자의 기출 표시, 💯⭐🔥🤔는 감자의 우선순위입니다. 이미지를 누르면 크게 볼 수 있습니다.</p>
+      {sections.map((sec, i) => (
+        <figure class="gamja-sec" key={i}>
+          <figcaption><b>{sec.label}</b> <span class="small muted">· 감자 {GAMJA_FILE[sec.file] || ''} 요약 PDF {sec.pages?.length ? sec.pages.join('·') + '쪽' : ''}</span></figcaption>
+          {sec.images.map(im => <LazyMount key={im.path} height={Math.round(im.h / 3)}><SignedImg path={im.path} alt={`${title} · ${sec.label} 감자 원문 ${im.page}쪽`} /></LazyMount>)}
+        </figure>
+      ))}
+    </section>
   );
 }

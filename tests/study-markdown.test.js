@@ -69,3 +69,22 @@ test('키워드 요약은 밑줄·별표·HTML 문자를 보존하며 색상만 
   }
   assert.equal(renderStudyText('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;');
 });
+
+test('lead 모드는 문단·목록 항목마다 첫 암기 용어 하나만 형광펜으로 표시하고 표 안은 표시하지 않는다', () => {
+  const md = '- 싱글턴(Singleton): 인스턴스를 하나만 생성. 싱글턴은 전역 접근.\n- 프로토타입: 복제. 싱글턴과 다름.\n\n| 계층 | 장비 |\n|---|---|\n| 응용 | 싱글턴 |';
+  const html = renderMarkdown(md, { memoryTerms: ['싱글턴', '프로토타입'], memoryMode: 'lead' });
+  assert.equal((html.match(/<mark /g) || []).length, 2);
+  assert.ok(html.includes('<mark class="study-mark">싱글턴</mark>(Singleton)'));
+  assert.ok(html.includes('<mark class="study-mark">프로토타입</mark>'));
+  assert.ok(/<table>[\s\S]*싱글턴[\s\S]*<\/table>/.test(html) && !/<table>[\s\S]*<mark[\s\S]*<\/table>/.test(html));
+  assert.ok((renderMarkdown(md, { memoryTerms: ['싱글턴'] }).match(/<mark /g) || []).length > 2);
+});
+
+test('lead 모드는 같은 용어를 처음 나온 곳에만 표시하고, 조사가 붙은 **굵게**도 처리한다', () => {
+  const md = '- 개념 스키마(조직 전체)와 외부 스키마.\n- 논리적 독립성: 개념 스키마가 바뀌어도 영향 없음.\n\n**릴레이션 내포(Intension)**라고도 한다.';
+  const html = renderMarkdown(md, { memoryTerms: ['개념 스키마', '외부 스키마', '논리적 독립성'], memoryMode: 'lead' });
+  assert.equal((html.match(/<mark /g) || []).length, 2);
+  assert.equal((html.match(/<mark class="study-mark">개념 스키마<\/mark>/g) || []).length, 1);
+  assert.ok(html.includes('<mark class="study-mark">논리적 독립성</mark>'));
+  assert.ok(html.includes('<strong>릴레이션 내포(Intension)</strong>라고도') && !html.includes('**'));
+});

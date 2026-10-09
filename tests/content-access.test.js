@@ -27,3 +27,10 @@ test('사용자에게 중요도만 제공하고 그 출처·페이지는 제외�
   assert.deepEqual(studentContent(source).concepts[0].studyKeywords, ['각 행']);
   assert.equal(studentContent({ concepts: [{ id: 'b' }] }).concepts[0].studyPriority, undefined);
 });
+
+test('감자 원문 이미지 연결은 관리자 번들에만 있고 사용자용 파일에는 없다', () => {
+  const source = { concepts: [{ id: 'a', title: '배열', gamja: [{ label: '5) 배열', file: 'F23', pages: [9], images: [{ path: 'crops/G23-c-array-1.png', page: 9 }] }] }] };
+  const text = JSON.stringify(studentContent(source));
+  assert.equal(studentContent(source).concepts[0].gamja, undefined);
+  for (const value of ['G23', 'crops/', 'F23']) assert.equal(text.includes(value), false, value);
+});
