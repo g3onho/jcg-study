@@ -3,6 +3,7 @@ import { useStore, addEvent, setKV, getKV, resolveConflict } from '../store.js';
 import { problemStates, conceptStates, recommendProblem, LEVEL_LABEL, AREA_LABEL, CAUSES } from '../engine.js';
 import { grade } from '../grading.js';
 import { Md, Code, Table, VBadges, VDetails, OriginBadge, SourceRef, SignedImg, Empty } from '../components/ui.jsx';
+import { InkBar, InkCodeLayer, InkPad, useInk, useInkPrefs } from '../components/Ink.jsx';
 
 const LANG_LABEL = { c: 'C', java: 'Java', python: 'Python', sql: 'SQL' };
 
@@ -67,6 +68,8 @@ export function Problem({ id, route }) {
   const draft = getKV(draftKey(id)) || {};
   const [ans, setAns] = useState(() => ({ text: draft.text || '', parts: draft.parts || [] }));
   const conflict = s.conflicts[draftKey(id)];
+  const ink = useInk(id);
+  const [inkPrefs, setInkPrefs] = useInkPrefs();
 
   useEffect(() => {
     setPhase('solve'); setHintN(0); setRevealed(false); setRes(null); setLastAttempt(null); setShowImg(!!p?.prefer_image); setShowTitle(false); setSelfChecks({});
@@ -117,15 +120,19 @@ export function Problem({ id, route }) {
         </div>
       )}
 
+      <InkBar api={ink} prefs={inkPrefs} setPrefs={setInkPrefs} />
+
       <section class="qbox">
         {p.notice && <div class="notice small"><b>원본 표기</b> {p.notice}</div>}
         {p.reconstructed && <div class="alert warn small"><b>AI 재구성 문항</b> — {p.reconstructed}</div>}
         {(!showImg || !p.image) && <Md text={p.prompt} />}
         {(!showImg || !p.image) && p.tables && p.tables.map((t, i) => <Table key={i} {...t} />)}
-        {(!showImg || !p.image) && p.code && <Code code={p.code} lang={LANG_LABEL[p.lang] || ''} />}
+        {(!showImg || !p.image) && p.code && <Code code={p.code} lang={LANG_LABEL[p.lang] || ''} overlay={<InkCodeLayer api={ink} prefs={inkPrefs} />} />}
         {showImg && p.image && <SignedImg path={p.image} alt={`${p.setTitle} ${p.no}번 문제 원문`} />}
         {p.image && <button class="linkbtn small" onClick={() => setShowImg(!showImg)}>{showImg ? '텍스트로 보기' : '원문 이미지로 보기'}{p.prefer_image && !showImg ? ' (표·그림은 원문 이미지가 정확합니다)' : ''}</button>}
       </section>
+
+      <InkPad api={ink} prefs={inkPrefs} hasCode={!!p.code && !(showImg && p.image)} />
 
       {phase === 'solve' && (
         <section class="answer">

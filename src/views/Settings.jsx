@@ -1,12 +1,14 @@
 import { useState } from 'preact/hooks';
-import { useStore, getState, exportBackup, importBackup, resolveConflict, signOut, loadAll } from '../store.js';
+import { useStore, getState, exportBackup, importBackup, resolveConflict, signOut, loadAll, loadAllInk } from '../store.js';
 import { APP_VERSION, EXAM_LABEL } from '../config.js';
 
 export function Settings() {
   const s = useStore();
   const [msg, setMsg] = useState(null);
   const [imp, setImp] = useState(null);
-  function download() {
+  async function download() {
+    const inkOk = await loadAllInk(); // 필기는 시작 때 받지 않으므로 백업 전에 서버의 필기를 모두 가져온다
+    if (!inkOk && !confirm('서버에서 필기를 가져오지 못했습니다. 이 기기에 열어 본 필기만 포함하여 백업할까요?')) return;
     const blob = new Blob([JSON.stringify(exportBackup(), null, 1)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
     a.download = `jcg-study-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
@@ -35,7 +37,7 @@ export function Settings() {
       </section>
 
       <section><h2 class="h3">학습 기록 백업·복원</h2>
-        <p class="small">풀이·오답·복습·개념 확인 기록과 작성 중 답안을 JSON 파일로 내려받습니다. 복원은 기존 기록을 지우지 않고 없는 기록만 추가합니다(같은 기록은 ID로 중복 제거).</p>
+        <p class="small">풀이·오답·복습·개념 확인 기록과 작성 중 답안, 필기(손글씨)를 JSON 파일로 내려받습니다. 복원은 기존 기록을 지우지 않고 없는 기록만 추가합니다(같은 기록은 ID로 중복 제거).</p>
         <div class="row wrap"><button class="btn" onClick={download}>백업 파일 내려받기</button>
           <label class="btn">백업 파일로 복원<input type="file" accept="application/json" onChange={restore} hidden /></label></div>
         {msg && <p class="small">{msg}</p>}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { getApi } from './api/index.js';
+import { mergeKV, isInkKey } from './ink.js';
 
 const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
@@ -102,7 +103,10 @@ function indexContent(c) {
 
 export async function refresh(silent) {
   try {
-    const [evs, kvRows] = await Promise.all([state.api.fetchEvents(), state.api.fetchKV()]);
+    // 필기(ink:*)는 시작 때 받지 않으므로, 이미 열어 본 문제의 필기만 따로 최신으로 갱신한다.
+    const openInk = Object.keys(state.kv).filter(isInkKey);
+    const [evs, kvRows0, inkRows] = await Promise.all([state.api.fetchEvents(), state.api.fetchKV(), openInk.length ? state.api.fetchKVByKeys(openInk) : []]);
+    const kvRows = [...kvRows0, ...inkRows];
     const byId = new Map(evs.map(e => [e.id, e]));
     for (const e of state.outbox) if (!byId.has(e.id)) byId.set(e.id, e);
     state.events = [...byId.values()].sort((a, b) => (a.client_at || a.created_at || '').localeCompare(b.client_at || b.created_at || ''));
@@ -137,6 +141,12 @@ export async function flush() {
         state.kv[key] = { key, value: res.value, version: res.version, updated_at: res.updated_at, device: res.device };
         if (state.kvPending[key] === p) delete state.kvPending[key];
         else if (state.kvPending[key]) state.kvPending[key].expected = res.version;
+      } else if (res && mergeKV(key, p.value, res.value) !== undefined) {
+        // 합칠 수 있는 값(필기): 획 단위로 합쳐 서버 버전 위에 다시 저장 — 어느 기기의 필기도 사라지지 않는다
+        const latest = state.kvPending[key] || p; // 저장하는 동안 더 쓴 필기가 있으면 그것까지 포함
+        const merged = mergeKV(key, latest.value, res.value);
+        state.kvPending[key] = { value: merged, expected: res.version };
+        state.kv[key] = { key, value: merged, version: res.version, updated_at: res.updated_at, device: res.device, pending: true, serverVersion: res.version };
       } else {
         // 다른 기기에서 먼저 수정됨: 조용히 덮어쓰지 않고 충돌로 보관
         state.conflicts[key] = { mine: p.value, server: res ? { value: res.value, version: res.version, updated_at: res.updated_at, device: res.device } : null };
@@ -178,6 +188,23 @@ export function setKV(key, value, debounceMs = 0) {
   kvTimers[key] = setTimeout(flush, debounceMs);
 }
 export const getKV = key => state.kv[key]?.value;
+
+// 시작 때 받지 않는 키(필기)를 필요할 때 서버에서 가져온다. 이 기기에 저장 대기 중인 값이 있으면 덮어쓰지 않는다.
+function adoptRows(rows) {
+  let changed = false;
+  for (const r of rows) {
+    if (state.kvPending[r.key]) continue;
+    const cur = state.kv[r.key];
+    if (!cur || cur.version !== r.version) { state.kv[r.key] = r; changed = true; }
+  }
+  if (changed) emit();
+}
+export async function loadKV(key) {
+  try { adoptRows(await state.api.fetchKVByKeys([key])); return true; } catch { return false; }
+}
+export async function loadAllInk() {
+  try { adoptRows(await state.api.fetchKVPrefix('ink:')); return true; } catch { return false; }
+}
 
 export function resolveConflict(key, choice) {
   const c = state.conflicts[key]; if (!c) return;

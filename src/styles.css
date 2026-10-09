@@ -156,3 +156,17 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 details summary { cursor: pointer; min-height: 32px; }
 .vdetails ul { list-style: none; padding-left: 0; } .vdetails li { margin: 6px 0; }
 .history ul { padding-left: 1em; }
+
+/* 필기 */
+:root { --grid: #ebe8df; --sw0: #1d232b; --sw1: #1f5fcf; --sw2: #c62828; }
+@media (prefers-color-scheme: dark) { :root { --grid: #2b3038; --sw0: #e8eaed; --sw1: #8ab8ff; --sw2: #ff8a80; } }
+.inkbar { position: sticky; top: var(--topH, 57px); z-index: 12; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 0; margin: 6px 0; background: var(--bg); }
+.inkbar.on { border-bottom: 2px solid var(--accent); }
+.inkmsg { flex: 1 1 220px; }
+.chip:disabled { opacity: .5; cursor: default; }
+.swatch { display: inline-flex; align-items: center; gap: 6px; } .swatch .sw { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); }
+.inkc { position: absolute; left: 0; top: 0; pointer-events: none; }
+.inkcv { display: block; pointer-events: none; touch-action: auto; }
+.inkcv.on { pointer-events: auto; touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.inkpad { position: relative; width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background-color: var(--panel);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: var(--cell) var(--cell); }

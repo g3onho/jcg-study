@@ -17,13 +17,14 @@ export function Md({ text, class: cls }) {
   return <div class={'md ' + (cls || '')} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-export function Code({ code, lang, numbers = true }) {
+export function Code({ code, lang, numbers = true, overlay = null }) {
   if (!code) return null;
   const lines = code.replace(/\t/g, '    ').split('\n');
   return (
     <div class="code" role="region" aria-label={(lang || '코드') + ' 코드'} tabIndex={0}>
       {lang && <div class="code-lang">{lang}</div>}
       <pre>{lines.map((l, i) => <div class="cl" key={i}>{numbers && <span class="ln" aria-hidden="true">{i + 1}</span>}<span>{l || ' '}</span></div>)}</pre>
+      {overlay}
     </div>
   );
 }

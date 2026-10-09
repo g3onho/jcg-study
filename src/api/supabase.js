@@ -48,8 +48,24 @@ export function makeSupabaseApi() {
       const { error } = await sb.from('events').upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
       if (error) throw error;
     },
+    // 필기(ink:*)는 용량이 커서 시작할 때 전부 받지 않는다(문제를 열 때 fetchKVByKeys로 개별 로드).
     async fetchKV() {
-      const { data, error } = await sb.from('kv').select('key,value,version,updated_at,device');
+      const cols = 'key,value,version,updated_at,device';
+      let { data, error } = await sb.from('kv').select(cols).not('key', 'like', 'ink:%');
+      if (error) { // 필터를 서버가 거부해도 앱이 멈추지 않게: 전체를 받아 클라이언트에서 거른다
+        ({ data, error } = await sb.from('kv').select(cols));
+        if (error) throw error;
+        data = data.filter(r => !r.key.startsWith('ink:'));
+      }
+      return data;
+    },
+    async fetchKVByKeys(keys) {
+      if (!keys.length) return [];
+      const { data, error } = await sb.from('kv').select('key,value,version,updated_at,device').in('key', keys);
+      if (error) throw error; return data;
+    },
+    async fetchKVPrefix(prefix) {
+      const { data, error } = await sb.from('kv').select('key,value,version,updated_at,device').like('key', prefix + '%');
       if (error) throw error; return data;
     },
     async kvPut(key, value, expected, device) {

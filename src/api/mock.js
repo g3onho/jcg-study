@@ -33,7 +33,9 @@ export function makeMockApi() {
       for (const e of evs) if (!ids.has(e.id)) { all.push({ ...e, created_at: new Date().toISOString() }); ids.add(e.id); }
       write('events', all);
     },
-    async fetchKV() { await net(); return Object.values(read('kv', {})); },
+    async fetchKV() { await net(); return Object.values(read('kv', {})).filter(r => !r.key.startsWith('ink:')); },
+    async fetchKVByKeys(keys) { await net(); const kv = read('kv', {}); return keys.map(k => kv[k]).filter(Boolean); },
+    async fetchKVPrefix(prefix) { await net(); return Object.values(read('kv', {})).filter(r => r.key.startsWith(prefix)); },
     async kvPut(key, value, expected, device) {
       await net();
       const kv = read('kv', {}); const cur = kv[key];
