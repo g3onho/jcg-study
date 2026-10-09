@@ -3,7 +3,7 @@ export const fixtureContent = {
   version: 'ui-check', files: [{ id: 'F01', title: '테스트 원본', path: '테스트 원본.pdf', storage: 'originals/F01.pdf', pages: 1, analysis: 'done' }],
   toc: [{ id: 'unit', title: '프로그래밍', area: 'code', concepts: ['array', 'loop'] }],
   concepts: [
-    { id: 'array', title: '배열', area: 'code', order: 1, summary: '여러 값을 순서대로 저장합니다.', definition: '같은 자료형의 값을 인덱스로 접근하는 자료구조입니다.', sources: [{ file: 'F01', pdf_page: 1, role: 'basis' }], checks: [], verification: [{ type: '추가 확인 필요', detail: '테스트 원본.pdf' }] },
+    { id: 'array', title: '배열', area: 'code', order: 1, summary: '**배열**은 여러 값을 순서대로 저장합니다.', definition: '같은 자료형의 값을 **인덱스**로 접근하는 자료구조입니다.', keywords: ['배열', '인덱스', '자료형'], easy: '물건을 순서대로 둔 상자를 생각해 보세요. 인덱스는 상자의 위치입니다.', examples: [{ title: '첫 번째 값', code: 'values = [10, 20]\nprint(values[0])', lang: 'python', output: '10', explain: '첫 인덱스는 0입니다.' }], sources: [{ file: 'F01', pdf_page: 1, role: 'basis' }], checks: [], verification: [{ type: '추가 확인 필요', detail: '테스트 원본.pdf' }] },
     { id: 'loop', title: '반복문', area: 'code', order: 2, summary: '조건에 따라 같은 처리를 반복합니다.', checks: [], verification: [] },
   ],
   sets: [{ id: 'demo', title: '연습 문제', count: 3 }],

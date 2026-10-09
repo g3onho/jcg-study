@@ -1,31 +1,38 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { useStore, addEvent, setKV } from '../store.js';
 import { problemStates, conceptStates, LEVEL_LABEL, AREA_LABEL } from '../engine.js';
 import { grade } from '../grading.js';
-import { Md, Code, Table, VBadges, VDetails, SourceRef, Empty, ExamBadge } from '../components/ui.jsx';
+import { Md, Code, Table, VBadges, VDetails, SourceRef, Empty } from '../components/ui.jsx';
 import { problemLink } from '../study-links.js';
+import { conceptExamStats, EXAM_LEVEL, isPastExamProblem } from '../exam-tags.js';
 
 export function Learn({ route }) {
   const s = useStore(); const c = s.content;
   const cst = conceptStates(s.events); const pst = problemStates(s.events);
   const [area, setArea] = useState(route.q.area || '');
+  const [frequency, setFrequency] = useState('');
+  const stats = useMemo(() => Object.fromEntries(c.concepts.map(x => [x.id, conceptExamStats(c, x.id)])), [c]);
+  const sample = stats[c.concepts[0]?.id];
+  const units = c.toc.filter(u => !area || u.area === area).map(u => ({ ...u, concepts: u.concepts.filter(id => stats[id] && (!frequency || stats[id].level === frequency)) })).filter(u => u.concepts.length);
   return (
     <div class="page">
       <h1>통합 개념 학습</h1>
-      <p class="small muted">공식 출제기준(정보처리실무 12개 주요항목)과 개념의 선후관계에 맞춰 여러 자료를 하나로 묶은 목차입니다. 추천 순서와 관계없이 아무 개념이나 골라 볼 수 있습니다.</p>
-      <div class="filters"><select aria-label="영역" value={area} onChange={e => setArea(e.target.value)}><option value="">전체</option>{Object.entries(AREA_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-      {c.toc.filter(u => !area || u.area === area).map(u => (
+      <p class="small muted">출제 빈도를 참고해 먼저 볼 개념을 고르세요. 기초부터 목차 순서대로 공부해도 좋습니다.</p>
+      <details class="exam-guide small"><summary>우선순위 기준 · 수록 복원 기출 {sample?.totalSessions || 0}회 / {sample?.totalProblems || 0}문항</summary><p>빈출: 수록 회차의 절반 이상(최소 2회) · 반복 출제: 2회 이상 · 단일 회차: 1회. 같은 회차에 여러 문항이 있어도 회차 수는 한 번만 셉니다. 모의·변형 문제는 제외하며, 다음 시험의 출제 확률이 아닙니다. 연결 기출이 없는 개념도 기본 학습 범위에 포함됩니다.</p></details>
+      <div class="filters"><select aria-label="영역" value={area} onChange={e => setArea(e.target.value)}><option value="">전체 영역</option>{Object.entries(AREA_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select><select aria-label="기출 빈도" value={frequency} onChange={e => setFrequency(e.target.value)}><option value="">모든 출제 빈도</option>{Object.entries(EXAM_LEVEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+      {!units.length && <Empty>해당 조건의 개념이 없습니다. 영역이나 출제 빈도를 바꿔보세요.</Empty>}
+      {units.map(u => (
         <section key={u.id} class="unit">
           <h2 class="h3">{u.title} <span class="small muted">{u.std ? '· 출제기준: ' + u.std : ''}</span></h2>
-          <ul class="clist">{u.concepts.map(cid => {
+          <ul class="clist concept-list">{u.concepts.map(cid => {
             const x = c.conceptById[cid]; if (!x) return null;
             const cs = cst[cid]; const n = (c.problemsByConcept[cid] || []).length;
             const solved = (c.problemsByConcept[cid] || []).filter(pid => pst[pid]?.level >= 2).length;
             const checksOk = x.checks?.length && x.checks.every(q => cs?.checks?.[q.id]?.result === 'correct');
             return (
               <li key={cid}><a href={'#/c/' + cid}>
-                <span class="ctitle">{x.title}<ExamBadge conceptId={cid} />{x.core ? <span class="core" title={x.coreNote}>핵심</span> : null}</span>
-                <span class="small muted">{cs?.readAt ? (checksOk ? '확인 문제 통과' : '읽어봄') : '미확인'} · 연결 문제 {solved}/{n}</span>
+                <span class="concept-row-title">{x.title}<span class="small muted">{cs?.readAt ? (checksOk ? '확인 문제 통과' : '읽어봄') : '미확인'} · 연결 문제 {solved}/{n}</span></span>
+                <ExamFrequency stats={stats[cid]} />
               </a></li>);
           })}</ul>
         </section>
@@ -55,31 +62,40 @@ export function Concept({ id }) {
   const probs = c.problemsByConcept[id] || [];
   const basis = (x.sources || []).filter(z => z.role === 'basis');
   const deeper = (x.sources || []).filter(z => z.role !== 'basis');
+  const exam = conceptExamStats(c, id);
+  const restored = probs.filter(pid => isPastExamProblem(c.problemById[pid]));
+  const practice = probs.filter(pid => !isPastExamProblem(c.problemById[pid]));
+  const studyText = { keywords: x.keywords };
   return (
     <div class="page concept">
       <div class="crumbs small"><a href="#/learn">개념 학습</a> · {unit?.title}</div>
       <h1>{x.title}</h1>
-      <div class="meta"><ExamBadge conceptId={id} />{x.core && <span class="core" title={x.coreNote}>핵심</span>} <VBadges list={x.verification} /> <span class="small muted">{x.origin_note || '여러 자료를 바탕으로 구축 단계에서 정리한 설명(AI 작성·검토)'}</span></div>
+      <div class="concept-overview"><ExamFrequency stats={exam} /><span class="small muted">수록 복원 기출 기준 · 연결 {exam.problemCount}문항</span>
+        {!!exam.sessions.length && <details class="exam-history small"><summary>출제 회차 보기</summary><ul>{exam.sessions.map(session => <li key={session.id}>{session.title} <span class="muted">· {session.problems.map(p => p.no).join(', ')}번</span></li>)}</ul></details>}
+      </div>
+      <div class="meta"><VBadges list={x.verification} /></div>
+      <p class="small muted">{x.origin_note || '여러 자료를 바탕으로 구축 단계에서 정리한 설명(AI 작성·검토)'}</p>
       {x.prereq?.length ? <p class="small">먼저 보면 좋은 개념: {x.prereq.map((p, i) => <span key={p}>{i ? ', ' : ''}<a href={'#/c/' + p}>{c.conceptById[p]?.title}</a></span>)}</p> : null}
       {mastered && <div class="notice small">이미 확인한 개념입니다. 핵심만 표시합니다. <button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '핵심만 보기'}</button></div>}
       {!mastered && <div class="small"><button class="linkbtn" onClick={() => setBrief(!brief)}>{brief ? '기본 설명 펼치기' : '이미 아는 내용이면 핵심만 보기'}</button></div>}
 
-      {x.summary && <Md text={x.summary} class="lead" />}
-      {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} /></section>}
-      {x.definition && <section><h2 class="h3">시험용 핵심 정의</h2><Md text={x.definition} /></section>}
+      <div class="study-legend small"><span class="study-keyword">빨간 글씨: 핵심 키워드</span><span><mark class="study-mark">형광펜: 암기할 문장</mark></span></div>
+      {x.summary && <Md text={x.summary} class="lead" {...studyText} />}
+      {x.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={x.definition} memorize {...studyText} /></section>}
+      {!brief && x.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={x.easy} {...studyText} /></section>}
       {!brief && x.examples?.map((e, i) => (
         <section key={i} class="example"><h2 class="h3">예제{x.examples.length > 1 ? ' ' + (i + 1) : ''}: {e.title}</h2>
           {e.code && <Code code={e.code} lang={e.lang} />}
           {e.output != null && <div class="small">실행 결과{e.env ? ` (${e.env})` : ''}<pre class="pre">{e.output}</pre></div>}
           {e.trace && <Table {...e.trace} />}
-          {e.explain && <Md text={e.explain} />}
+          {e.explain && <Md text={e.explain} {...studyText} />}
           {e.verified && <div class="small muted">✔ {e.verified}</div>}
         </section>
       ))}
-      {x.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={x.compare} /></section>}
-      {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" /></li>)}</ul></section> : null}
-      {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw">{x.keywords.map(k => <span key={k} class="chip">{k}</span>)}</div></section> : null}
-      {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} /></section>}
+      {x.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={x.compare} {...studyText} /></section>}
+      {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" {...studyText} /></li>)}</ul></section> : null}
+      {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw concept-keywords">{x.keywords.map(k => <span key={k}>{k}</span>)}</div></section> : null}
+      {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} memorize {...studyText} /></section>}
 
       {x.recall?.length ? <section><h2 class="h3">떠올려 쓰기</h2><p class="small muted">보지 않고 먼저 써 본 뒤 모범 답과 비교하세요.</p>{x.recall.map((r, i) => <Recall key={id + i} cid={id} i={i} r={r} />)}</section> : null}
       {x.checks?.length ? <section><h2 class="h3">확인 문제</h2>{x.checks.map(q => <Check key={q.id} cid={id} q={q} prev={cs?.checks?.[q.id]} />)}</section> : null}
@@ -89,7 +105,7 @@ export function Concept({ id }) {
         {probs.length ? <a class="btn primary" href={problemLink(probs.find(pid => !pst[pid]?.level) || probs[0], id)}>연결 문제 풀기</a> : null}
       </div>
 
-      {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2><ul class="list">{probs.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={problemLink(pid, id)}>{p.setTitle} {p.no}번</a> <ExamBadge problem={p} /><span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></section> : null}
+      {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2>{[[restored, '복원 기출'], [practice, '모의·변형·기타 연습']].map(([ids, title]) => ids.length ? <div key={title}><h3 class="h4">{title} <span class="muted small">{ids.length}문항</span></h3><ul class="list">{ids.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={problemLink(pid, id)}>{p.setTitle} {p.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></div> : null)}</section> : null}
       {x.related?.length ? <p class="small">관련 개념: {x.related.map((r, i) => <span key={r}>{i ? ', ' : ''}<a href={'#/c/' + r}>{c.conceptById[r]?.title}</a></span>)}</p> : null}
 
       {s.isAdmin && <section>
@@ -102,6 +118,10 @@ export function Concept({ id }) {
       <nav class="row between small">{prev ? <a href={'#/c/' + prev}>← {c.conceptById[prev]?.title}</a> : <span />}{next ? <a href={'#/c/' + next}>{c.conceptById[next]?.title} →</a> : <span />}</nav>
     </div>
   );
+}
+
+function ExamFrequency({ stats }) {
+  return <span class={'exam-frequency frequency-' + stats.level}><b>{EXAM_LEVEL[stats.level]}</b><span class="small">{stats.sessions.length}/{stats.totalSessions}회 출제</span></span>;
 }
 
 function Recall({ cid, i, r }) {

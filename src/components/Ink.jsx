@@ -169,7 +169,7 @@ export function InkCodeLayer({ api, prefs }) {
 }
 
 // 코드 아래 연습지(격자). 시험의 손글씨 풀이 공간 역할.
-export function InkPad({ api, prefs, hasCode }) {
+export function InkPad({ api, prefs, hasCode, title = '연습지' }) {
   const wrap = useRef(null);
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -180,7 +180,7 @@ export function InkPad({ api, prefs, hasCode }) {
   const strokes = useMemo(() => K.strokesOf(api.ink, 'p'), [api.ink]);
   return (
     <section class="inkpadbox">
-      <h2 class="h3">연습지 <span class="small muted">(필기용 · 채점되지 않음)</span></h2>
+        <h2 class="h3">{title} <span class="small muted">(필기용 · 채점되지 않음)</span></h2>
       <div class="inkpad" ref={wrap} style={{ height: h + 'px', '--cell': (50 * k) + 'px' }}>
         {w > 0 && <InkCanvas layer="p" strokes={strokes} w={w} h={h} k={k} active={prefs.on} prefs={prefs} onAdd={api.add} onErase={api.erase} />}
       </div>
@@ -193,7 +193,7 @@ export function InkPad({ api, prefs, hasCode }) {
   );
 }
 
-export function InkBar({ api, prefs, setPrefs }) {
+export function InkBar({ api, prefs, setPrefs, hasCode }) {
   useEffect(() => { // 헤더 높이만큼 아래에 붙도록(휴대폰에서는 검색창 때문에 헤더가 두 줄)
     const top = document.querySelector('.top'); if (!top) return;
     const f = () => document.documentElement.style.setProperty('--topH', top.offsetHeight + 'px');
@@ -217,8 +217,8 @@ export function InkBar({ api, prefs, setPrefs }) {
           : api.load === 'fail' ? '서버에서 필기를 불러오지 못했습니다. 지금 쓰는 필기는 이 기기에 보관되고 연결되면 기존 필기와 합쳐 저장됩니다.'
           : api.tooBig ? '필기 분량 한도에 도달했습니다. 일부를 지운 뒤 쓰세요.'
           : api.nearLimit ? '필기 분량이 한도에 가깝습니다.'
-          : prefs.on ? '펜·손가락·마우스로 코드 위나 연습지에 쓰세요. 화면을 넘기려면 필기를 끄세요.'
-          : '필기를 켜면 코드 위와 연습지에 손으로 쓸 수 있습니다.'}
+          : prefs.on ? `펜·손가락·마우스로 ${hasCode ? '코드 위나 ' : ''}필기장에 쓰세요. 화면을 넘기려면 필기를 끄세요.`
+          : `필기를 켜면 ${hasCode ? '코드 위와 ' : ''}필기장에 손으로 쓸 수 있습니다.`}
       </span>
     </div>
   );

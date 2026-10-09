@@ -1,20 +1,10 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { marked } from 'marked';
+import { renderMarkdown } from '../study-markdown.js';
 import { useStore, getState } from '../store.js';
 import { isPastExamProblem, hasPastExamConcept } from '../exam-tags.js';
 
-marked.setOptions({ gfm: true, breaks: false });
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-// 원시 HTML은 허용하지 않는다: 마크다운 안의 HTML 토큰은 글자 그대로 보이게 이스케이프한다.
-marked.use({ renderer: { html(html) { return esc(typeof html === 'string' ? html : html?.text); } } });
-
-export function Md({ text, class: cls }) {
-  const html = useMemo(() => {
-    // 콘텐츠는 구축 단계에서 작성·검토한 것이지만 원시 HTML은 허용하지 않는다(위 renderer.html 참고).
-    let h = marked.parse(String(text || ''));
-    h = h.replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, '</table></div>');
-    return h;
-  }, [text]);
+export function Md({ text, class: cls, keywords, memorize = false }) {
+  const html = useMemo(() => renderMarkdown(text, { keywords, memorize }), [text, keywords, memorize]);
   return <div class={'md ' + (cls || '')} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
