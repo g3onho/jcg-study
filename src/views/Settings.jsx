@@ -54,7 +54,8 @@ export function Settings() {
 
       <section><h2 class="h3">콘텐츠 가져오기(관리)</h2>
         <p class="small">구축 단계에서 만든 콘텐츠 패키지 폴더(<code>_웹앱_업로드</code>)를 선택하면 비공개 저장소로 올립니다. 로그인한 허용 계정만 가능합니다.</p>
-        <label class="btn">패키지 폴더 선택<input type="file" webkitdirectory="" directory="" multiple hidden onChange={e => setImp([...e.target.files])} /></label>
+        <div class="row wrap"><label class="btn">패키지 폴더 선택<input type="file" webkitdirectory="" directory="" multiple hidden onChange={e => setImp([...e.target.files])} /></label>
+          <label class="btn">개별 파일 선택<input id="import-files" type="file" multiple hidden accept=".json,.png,.pdf" onChange={e => setImp([...e.target.files])} /></label></div>
         {imp && <Importer files={imp} />}
       </section>
     </div>
@@ -63,7 +64,14 @@ export function Settings() {
 
 function Importer({ files }) {
   const [log, setLog] = useState([]); const [busy, setBusy] = useState(false); const [done, setDone] = useState(0);
-  const rel = f => (f.webkitRelativePath || f.name).split('/').slice(1).join('/');
+  const rel = f => {
+    if (f.webkitRelativePath) return f.webkitRelativePath.split('/').slice(1).join('/');
+    // 폴더 구조 없이 개별 파일을 고른 경우: 파일 이름으로 위치 판단
+    if (/\.json$/.test(f.name)) return 'content/' + f.name;
+    if (/^[RMVA][\w-]*\.png$/.test(f.name)) return 'crops/' + f.name;
+    if (/^F\d+\.pdf$/.test(f.name)) return 'originals/' + f.name;
+    return f.name;
+  };
   const items = files.filter(f => /^(content|crops|originals)\//.test(rel(f)));
   async function run() {
     setBusy(true); const api = getState().api; let n = 0; const out = [];
