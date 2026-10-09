@@ -40,7 +40,8 @@ export async function init() {
   state.session = await state.api.getSession();
   state.api.onAuthChange(s => {
     const was = state.session?.user?.id; state.session = s;
-    if (s && s.user.id !== was) { loadAll(); }
+    // supabase-js: 인증 상태 콜백 안에서 다른 Supabase 호출을 바로 기다리면 내부 잠금 때문에 멈출 수 있어 다음 틱으로 미룬다.
+    if (s && s.user.id !== was) { setTimeout(() => loadAll(), 0); }
     if (!s) { state.content = null; state.events = []; state.kv = {}; }
     emit();
   });
@@ -65,6 +66,7 @@ export async function loadAll() {
   state.kvPending = lsGet(uidKey('kvPending'), {});
   state.conflicts = lsGet(uidKey('conflicts'), {});
   state.contentLoading = true; state.contentError = null; emit();
+  const slow = setTimeout(() => { if (state.contentLoading) { state.contentError = '불러오는 데 시간이 오래 걸리고 있습니다. 네트워크 상태를 확인하거나 새로고침하세요.'; emit(); } }, 20000);
   try {
     state.allowed = await state.api.isAllowed();
     if (!state.allowed) { state.contentError = '이 계정은 콘텐츠 접근 권한이 없습니다.'; }
@@ -75,6 +77,7 @@ export async function loadAll() {
   } catch (e) {
     state.contentError = '콘텐츠를 불러오지 못했습니다: ' + (e.message || e);
   }
+  clearTimeout(slow);
   state.contentLoading = false; emit();
   flush();
 }

@@ -37,7 +37,7 @@ export function App() {
   if (!s.session) return <Login />;
   const top = route.parts[0] || '';
   let view;
-  if (s.contentLoading && !s.content) view = <div class="boot">학습 콘텐츠를 불러오는 중…</div>;
+  if (s.contentLoading && !s.content && !s.contentError) view = <div class="boot">학습 콘텐츠를 불러오는 중…<div class="small"><a href="#/settings">설정</a></div></div>;
   else if (!s.content) view = <div class="page"><div class="alert">{s.contentError || '콘텐츠가 없습니다.'}</div><p><a href="#/settings">설정</a>에서 콘텐츠 가져오기 상태를 확인하세요.</p>{top === 'settings' && <Settings />}</div>;
   else {
     switch (top) {
