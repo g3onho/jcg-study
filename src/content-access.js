@@ -18,7 +18,7 @@ export function studentContent(c) {
     sets: (c.sets || []).map(s => pick(s, ['id', 'title', 'origin', 'count'])),
     terms: (c.terms || []).map(t => pick(t, ['term', 'alias', 'def', 'concept'])),
     concepts: (c.concepts || []).map(x => ({
-      ...pick(x, ['id', 'area', 'unit', 'title', 'order', 'prereq', 'summary', 'easy', 'definition', 'compare', 'pitfalls', 'keywords', 'memoryTerms', 'studyKeywords', 'examTerms', 'mnemonic', 'core', 'related']),
+      ...pick(x, ['id', 'area', 'unit', 'title', 'order', 'prereq', 'summary', 'easy', 'definition', 'compare', 'pitfalls', 'keywords', 'memoryTerms', 'studyKeywords', 'marks', 'examTerms', 'mnemonic', 'core', 'related']),
       verification: verification(x.verification),
       ...(x.studyPriority ? { studyPriority: { ...pick(x.studyPriority, ['partial']), topics: (x.studyPriority.topics || []).map(t => pick(t, ['title', 'level'])) } } : {}),
       examples: (x.examples || []).map(e => ({ ...pick(e, ['title', 'lang', 'code', 'output', 'env', 'explain']), ...(e.trace ? { trace: table(e.trace) } : {}) })),

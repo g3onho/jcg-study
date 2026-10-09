@@ -122,3 +122,17 @@ test('unit 모드: 같은 용어를 문단·항목마다 한 번씩 칠하고, �
   assert.equal((y.match(/study-mark/g) || []).length, 2);
   assert.match(renderMarkdown('틀린다: “Degree = 열” 이다.', { boldQuotes: true }), /<strong>“Degree = 열”<\/strong>/);
 });
+
+test('머리글에 키워드가 있는 표 열은 칸 전체를 빨갛게 한다', () => {
+  const html = renderMarkdown('| 설명 키워드 | 패턴 |\n|---|---|\n| 인스턴스 하나만 | 싱글턴 |\n| 대리인 | 프록시 |', {});
+  assert.equal((html.match(/<td><span class="study-keyword">/g) || []).length, 2);
+  assert.doesNotMatch(html, /싱글턴<\/span>/);
+});
+
+test("'앞말|용어' 항목은 앞말이 바로 앞에 있을 때만 칠한다", () => {
+  const html = renderMarkdown('전략 vs 상태 / 메멘토는 상태를 저장', { memoryTerms: ['vs |상태'], keywordOnce: 'unit' });
+  assert.equal((html.match(/study-mark/g) || []).length, 1);
+  assert.match(html, /vs <mark class="study-mark">상태<\/mark>/);
+  const red = renderMarkdown('가 나 다 나', { keywords: ['가 |나'] });
+  assert.equal((red.match(/study-keyword/g) || []).length, 1);
+});

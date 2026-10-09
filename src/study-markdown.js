@@ -2,13 +2,18 @@ import { Marked, Renderer } from 'marked';
 
 const escapeHtml = s => String(s ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// 용어 항목에 '앞말|용어' 꼴을 쓰면, 바로 앞에 '앞말'이 있을 때만 그 용어를 칠한다(같은 낱말이 다른 뜻으로 쓰인 곳은 건드리지 않기 위함).
+const splitCtx = k => { const i = k.indexOf('|'); return i > 0 ? { ctx: k.slice(0, i), word: k.slice(i + 1) } : { ctx: '', word: k }; };
 function studyHighlights({ keywords = [], memoryTerms = [], memoryMode = 'all', keywordOnce = false } = {}) {
   const state = { seen: new Set(), kw: new Set() }; // lead 모드: 같은 용어는 개념 안에서 처음 나온 곳에만
-  const memory = new Set(memoryTerms.filter(k => typeof k === 'string' && k.trim()));
+  const memEntries = memoryTerms.filter(k => typeof k === 'string' && k.trim()).map(splitCtx);
+  const memory = new Set(memEntries.filter(e => !e.ctx).map(e => e.word));
   const codeMemory = new Set([...memory].map(escapeHtml));
-  const patternFor = words => words.length ? new RegExp([...words].sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g') : null;
-  const pattern = patternFor([...new Set(keywords.filter(k => typeof k === 'string' && k.trim() && !memory.has(k)))]);
-  const memoryPattern = patternFor([...memory]);
+  const re = v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const patternFor = entries => entries.length ? new RegExp([...entries].sort((a, b) => b.word.length - a.word.length).map(e => (e.ctx ? '(?<=' + re(e.ctx) + ')' : '') + re(e.word)).join('|'), 'g') : null;
+  const kwEntries = [...new Map(keywords.filter(k => typeof k === 'string' && k.trim()).map(splitCtx).filter(e => !memory.has(e.word)).map(e => [e.ctx + '|' + e.word, e])).values()];
+  const pattern = patternFor(kwEntries);
+  const memoryPattern = patternFor(memEntries);
   const atBoundary = (part, word, offset) => !(/\w/.test(word[0]) && /\w/.test(part[offset - 1] || '')) && !(/\w/.test(word.at(-1)) && /\w/.test(part[offset + word.length] || ''));
   // 형광펜(적어낼 답)이 우선이다. 같은 글자 위에 빨간 글씨(답을 찾는 단서)가 겹치면 빨간 글씨는 쓰지 않는다.
   const highlight = value => value.split(/(&#(?:\d+|x[\da-f]+);|&[a-z]+;)/gi).map((part, i) => {
@@ -73,6 +78,12 @@ export function renderMarkdown(text, options) {
   html = html.split(/(<pre[\s\S]*?<\/pre>|<code>[\s\S]*?<\/code>)/).map((seg, i) => i % 2 ? seg : seg.replace(/\*\*(?=\S)((?:<\/?(?:mark|span)[^>]*>|[^*<>\n])+?)(?<=\S)\*\*/g, '<strong>$1</strong>')).join('');
   // “…”로 인용된 시험 핵심 문장은 검정 굵은 글씨로 보여 준다(코드 밖에서만).
   if (options?.boldQuotes) html = html.split(/(<pre[\s\S]*?<\/pre>|<code>[\s\S]*?<\/code>)/).map((seg, i) => i % 2 ? seg : seg.replace(/“([^”<]{2,80}(?:<[^>]+>[^”<]*)*)”/g, '<strong>“$1”</strong>')).join('');
+  // 머리글에 '키워드'가 들어간 열(예: 설명 키워드)은 문제에 그대로 나오는 단서이므로 칸 전체를 빨갛게 보여 준다.
+  html = html.replace(/<table>[\s\S]*?<\/table>/g, t => {
+    const heads = [...(/<thead>[\s\S]*?<\/thead>/.exec(t)?.[0] || '').matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map(m => m[1].replace(/<[^>]+>/g, ''));
+    const col = heads.findIndex(h => /키워드/.test(h)); if (col < 0) return t;
+    return t.replace(/<tbody>[\s\S]*?<\/tbody>/, body => body.replace(/<tr>[\s\S]*?<\/tr>/g, row => { let i = -1; return row.replace(/<td([^>]*)>([\s\S]*?)<\/td>/g, (m, a, c) => ++i === col ? '<td' + a + '><span class="study-keyword">' + c + '</span></td>' : m); }));
+  });
   html = html.replace(/\uE000/g, '<span class="ex-mark" role="img" aria-label="기출 표시">❗</span>');
   return html.replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, '</table></div>');
 }

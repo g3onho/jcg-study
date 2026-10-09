@@ -62,8 +62,9 @@ export function Concept({ id }) {
   const probs = c.problemsByConcept[id] || [];
   const basis = (x.sources || []).filter(z => z.role === 'basis');
   const deeper = (x.sources || []).filter(z => z.role !== 'basis');
-  const studyText = { keywords: x.studyKeywords || x.keywords, memoryTerms: x.memoryTerms, keywordOnce: 'unit' };
-  const redText = { keywords: x.studyKeywords || x.keywords, memoryTerms: x.memoryTerms, keywordOnce: 'unit', memoryMode: 'unit' }; // 빨간 글씨 = 문제에 나오는 단서, 형광펜 = 적어낼 답. 정의 밖에서도 문단·항목·표 행마다 한 번씩 칠한다
+  // 형광펜(marks.<영역>.mark)·빨간 단서(marks.<영역>.cue)는 영역마다 사람이 판단해 더한다. 같은 낱말이라도 그 영역에서 쓰인 뜻이 맞을 때만 넣는다.
+  const fo = (field, lead) => { const m = x.marks?.[field] || {}; return { keywords: [...(x.studyKeywords || x.keywords || []), ...(m.cue || [])], memoryTerms: [...(x.memoryTerms || []), ...(m.mark || [])], keywordOnce: 'unit', memoryMode: lead ? 'lead' : 'once' }; };
+  const studyText = fo('definition', true), redText = fo('easy');
   // 감자에서 ❗가 붙은 항목은 본문의 해당 항목 옆에 ❗를 붙이고, 위치를 못 찾은 항목은 따로 보여 준다.
   const exam = placeExamMarks({ definition: x.definition, compare: x.compare, easy: x.easy, summary: x.summary }, x.examTerms || []);
   const shownUnmatched = exam.unmatched.filter(t => t.length <= 22 && !/[*%<>]/.test(t));
@@ -83,7 +84,7 @@ export function Concept({ id }) {
       {x.gamja?.length ? <GamjaSection key={id} sections={x.gamja} title={x.title} /> : null}
       <div class="study-legend small"><span><mark class="study-mark">형광펜</mark> 시험지에 적어 내야 하는 답(용어)</span><span><span class="study-keyword">빨간 글씨</span> 문제에서 답을 찾는 단서 키워드</span>{x.examTerms?.length ? <span><span class="ex-mark">❗</span> 감자에서 기출로 표시한 항목</span> : null}</div>
       {shownUnmatched.length ? <p class="small muted ex-unmatched">❗ 감자 기출 표시 중 본문에서 위치를 못 찾은 항목: {shownUnmatched.join(' · ')}</p> : null}
-      {exam.texts.summary && <Md text={exam.texts.summary} class="lead" {...redText} />}
+      {exam.texts.summary && <Md text={exam.texts.summary} class="lead" {...fo('summary')} />}
       {exam.texts.definition && <section class="concept-definition"><h2 class="h3">암기할 핵심 정의</h2><Md text={exam.texts.definition} {...studyText} memoryMode="lead" /></section>}
       {!brief && exam.texts.easy && <section><h2 class="h3">쉬운 설명</h2><Md text={exam.texts.easy} {...redText} /></section>}
       {!brief && x.examples?.map((e, i) => (
@@ -91,14 +92,14 @@ export function Concept({ id }) {
           {e.code && <Code code={e.code} lang={e.lang} />}
           {e.output != null && <div class="small">실행 결과{e.env ? ` (${e.env})` : ''}<pre class="pre">{e.output}</pre></div>}
           {e.trace && <Table {...e.trace} />}
-          {e.explain && <Md text={e.explain} {...redText} />}
+          {e.explain && <Md text={e.explain} {...fo('examples')} />}
           {e.verified && <div class="small muted">✔ {e.verified}</div>}
         </section>
       ))}
-      {exam.texts.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={exam.texts.compare} {...redText} /></section>}
-      {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" boldQuotes {...redText} /></li>)}</ul></section> : null}
+      {exam.texts.compare && <section><h2 class="h3">헷갈리는 개념 비교</h2><Md text={exam.texts.compare} {...fo('compare')} /></section>}
+      {x.pitfalls?.length ? <section><h2 class="h3">자주 틀리는 지점</h2><ul>{x.pitfalls.map((t, i) => <li key={i}><Md text={t} class="inline" boldQuotes {...fo('pitfalls')} /></li>)}</ul></section> : null}
       {x.keywords?.length ? <section><h2 class="h3">답안 핵심 키워드</h2><div class="kw concept-keywords">{x.keywords.map(k => <Md key={k} text={k} literal tailCue class="inline" {...redText} memoryTerms={undefined} />)}</div></section> : null}
-      {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} {...redText} /></section>}
+      {!brief && x.mnemonic && <section class="small"><h2 class="h4">암기 보조(이해를 돕는 보조 수단)</h2><Md text={x.mnemonic} {...fo('mnemonic')} /></section>}
 
       {x.recall?.length ? <section><h2 class="h3">떠올려 쓰기</h2><p class="small muted">보지 않고 먼저 써 본 뒤 모범 답과 비교하세요.</p>{x.recall.map((r, i) => <Recall key={id + i} cid={id} i={i} r={r} />)}</section> : null}
       {x.checks?.length ? <section><h2 class="h3">확인 문제</h2>{x.checks.map(q => <Check key={q.id} cid={id} q={q} prev={cs?.checks?.[q.id]} />)}</section> : null}
