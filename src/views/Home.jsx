@@ -59,7 +59,7 @@ export function Home() {
       {rc && (
         <section>
           <h2>다음 추천 개념</h2>
-          <a class="card" href={'#/c/' + rc.concept.id}><b>{rc.concept.title}</b><ExamBadge conceptId={rc.concept.id} /><div class="small muted">{rc.reason}</div></a>
+          <a class="card" href={'#/c/' + rc.concept.id}><b>{rc.concept.title}</b><div class="small muted">{rc.reason}</div></a>
         </section>
       )}
 
@@ -84,7 +84,7 @@ export function Focus() {
       <button class="btn small" onClick={() => setKV('focus', { created: new Date().toISOString(), items: focusSession(c, cst, pst) })}>새 묶음 만들기</button>
       <ol class="list">
         {items.map((it, i) => {
-          if (it.kind === 'concept') { const x = c.conceptById[it.cid]; const done = !!cst[it.cid]?.readAt; return <li key={i} class={done ? 'done' : ''}><a href={'#/c/' + it.cid}>📘 {x.title}</a><ExamBadge conceptId={it.cid} />{done && ' ✓'}<div class="small muted">{it.reason}</div></li>; }
+          if (it.kind === 'concept') { const x = c.conceptById[it.cid]; const done = !!cst[it.cid]?.readAt; return <li key={i} class={done ? 'done' : ''}><a href={'#/c/' + it.cid}>📘 {x.title}</a>{done && ' ✓'}<div class="small muted">{it.reason}</div></li>; }
           const p = c.problemById[it.pid]; const st = pst[it.pid];
           return <li key={i} class={st?.level ? 'done' : ''}><a href={'#/p/' + it.pid + '?from=focus'}>✏️ {p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><ExamBadge problem={p} />{st?.level ? ' ✓' : ''}<div class="small muted">{it.reason}</div></li>;
         })}

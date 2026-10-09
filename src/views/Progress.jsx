@@ -42,7 +42,7 @@ export function Progress() {
       </section>
       <section><h2 class="h3">아직 손대지 않은 단원 ({untouched.length})</h2>{untouched.length ? <ul class="list">{untouched.map(r => <li key={r.u.id}><a href={'#/c/' + r.u.concepts[0]}>{r.u.title}</a></li>)}</ul> : <p class="small">모든 단원을 한 번 이상 확인했습니다.</p>}</section>
       <section><h2 class="h3">반복되는 약점</h2>
-        {weak.length ? <ul class="list">{weak.map(({ x, w }) => <li key={x.id}><a href={'#/c/' + x.id}>{x.title}</a><ExamBadge conceptId={x.id} /> <span class="small muted">연결 문제 누적 오답 {w}회</span></li>)}</ul> : <p class="small muted">같은 개념에서 2회 이상 틀린 기록이 아직 없습니다.</p>}
+        {weak.length ? <ul class="list">{weak.map(({ x, w }) => <li key={x.id}><a href={'#/c/' + x.id}>{x.title}</a> <span class="small muted">연결 문제 누적 오답 {w}회</span></li>)}</ul> : <p class="small muted">같은 개념에서 2회 이상 틀린 기록이 아직 없습니다.</p>}
         {Object.keys(causeCount).length ? <p class="small">직접 고른 오답 원인: {CAUSES.filter(k => causeCount[k]).map(k => `${k} ${causeCount[k]}회`).join(' · ')}</p> : null}
       </section>
     </div>

@@ -180,7 +180,7 @@ export function Problem({ id, route, ink, inkPrefs }) {
 
       <section>
         <h2 class="h3">관련 개념</h2>
-        {(p.concepts || []).length ? <ul class="list">{p.concepts.map(cid => { const x = c.conceptById[cid]; return x ? <li key={cid}><a href={'#/c/' + cid}>{x.title}</a><ExamBadge conceptId={cid} /> {cst[cid]?.readAt ? <span class="small muted">· 읽어봄</span> : <span class="small muted">· 아직 안 봄</span>}</li> : null; })}</ul> : <p class="small muted">연결된 개념 없음</p>}
+        {(p.concepts || []).length ? <ul class="list">{p.concepts.map(cid => { const x = c.conceptById[cid]; return x ? <li key={cid}><a href={'#/c/' + cid}>{x.title}</a> {cst[cid]?.readAt ? <span class="small muted">· 읽어봄</span> : <span class="small muted">· 아직 안 봄</span>}</li> : null; })}</ul> : <p class="small muted">연결된 개념 없음</p>}
         {showAnswer && similar.length > 0 && <><h3 class="h4">같은 개념의 다른 문제(변형 연습)</h3><ul class="list">{similar.map(x => { const q = c.problemById[x]; return <li key={x}><a href={problemLink(x, concept && q.concepts?.includes(concept) ? concept : null, seen)}>{q.setTitle} {q.no}번</a> <ExamBadge problem={q} /><span class="small muted">{LEVEL_LABEL[pst[x]?.level || 0]}</span></li>; })}</ul></>}
       </section>
 

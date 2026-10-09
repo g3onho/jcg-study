@@ -207,3 +207,9 @@ details summary { cursor: pointer; min-height: 32px; }
 .gamja-sec .imgbtn { width: 100%; }
 .gamja-sec img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .concept-row-title > span.exam-tag { display: inline-block; margin: 0 0 0 8px; font-weight: 700; }
+
+/* 형광펜(적어낼 답) · 빨간 글씨(답을 찾는 단서) · ❗(감자 기출 표시)만 의미를 가진다. 굵은 글씨는 색 없이 구조 표시일 뿐이다. */
+.md strong { font-weight: inherit; color: inherit; }
+.md li > strong:first-child, .md p > strong:first-child, .md td > strong:first-child, .md th > strong:first-child { font-weight: 650; } /* 항목 이름(맨 앞 굵은 글씨)만 굵게 */
+.ex-mark { color: var(--bad); font-weight: 700; margin-inline: 2px; font-style: normal; }
+.ex-unmatched { margin: 6px 0 12px; }

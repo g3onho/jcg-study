@@ -16,7 +16,7 @@ export function Search({ route }) {
   return (
     <div class="page">
       <h1>‘{q}’ 검색 결과</h1>
-      <section><h2 class="h3">개념 ({concepts.length})</h2><ul class="list">{concepts.slice(0, 30).map(x => <li key={x.id}><a href={'#/c/' + x.id}>{x.title}</a><ExamBadge conceptId={x.id} /> <span class="small muted">{x.summary}</span></li>)}</ul></section>
+      <section><h2 class="h3">개념 ({concepts.length})</h2><ul class="list">{concepts.slice(0, 30).map(x => <li key={x.id}><a href={'#/c/' + x.id}>{x.title}</a> <span class="small muted">{x.summary}</span></li>)}</ul></section>
       {terms.length ? <section><h2 class="h3">용어 ({terms.length})</h2><ul class="list">{terms.slice(0, 30).map(t => <li key={t.term}><b>{t.term}</b> — {t.def} {t.concept && <a href={'#/c/' + t.concept} class="small">개념 보기</a>}</li>)}</ul></section> : null}
       <section><h2 class="h3">문제 ({problems.length})</h2><ul class="list">{problems.slice(0, 50).map(p => <li key={p.id}><a href={'#/p/' + p.id}>{p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><ExamBadge problem={p} /></li>)}</ul></section>
       {s.isAdmin && <section><h2 class="h3">원본 자료 ({files.length})</h2><ul class="list">{files.map(f => <li key={f.id}><a href={'#/pdf/' + f.id}>{f.title}</a> <span class="small muted">{f.path}</span></li>)}</ul></section>}

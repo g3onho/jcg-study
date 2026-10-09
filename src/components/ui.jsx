@@ -3,8 +3,8 @@ import { renderMarkdown, renderStudyText } from '../study-markdown.js';
 import { useStore, getState } from '../store.js';
 import { isPastExamProblem, hasPastExamConcept } from '../exam-tags.js';
 
-export function Md({ text, class: cls, keywords, memoryTerms, memoryMode, literal = false }) {
-  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms, memoryMode }), [text, keywords, memoryTerms, memoryMode, literal]);
+export function Md({ text, class: cls, keywords, memoryTerms, memoryMode, keywordOnce, literal = false }) {
+  const html = useMemo(() => (literal ? renderStudyText : renderMarkdown)(text, { keywords, memoryTerms, memoryMode, keywordOnce }), [text, keywords, memoryTerms, memoryMode, keywordOnce, literal]);
   return <div class={'md ' + (cls || '')} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
@@ -59,10 +59,8 @@ export function OriginBadge({ origin }) {
   return <span class={'ob ob-' + origin}>{(s.isAdmin ? ORIGIN_LABEL : generic)[origin] || '연습 문제'}</span>;
 }
 
-export function ExamBadge({ problem, conceptId }) {
-  const s = useStore();
-  const shown = problem ? isPastExamProblem(problem) : hasPastExamConcept(s.content, conceptId);
-  return shown ? <span class="vb exam-tag" title={problem ? '복원 기출 문제' : '수록된 복원 기출에 연결된 개념'}><span aria-hidden="true">❗</span> 기출</span> : null;
+export function ExamBadge({ problem }) {
+  return problem && isPastExamProblem(problem) ? <span class="vb exam-tag" title="복원 기출 문제"><span aria-hidden="true">❗</span> 기출</span> : null;
 }
 
 export function SourceRef({ src, label }) {

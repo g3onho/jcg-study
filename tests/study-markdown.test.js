@@ -70,7 +70,7 @@ test('키워드 요약은 밑줄·별표·HTML 문자를 보존하며 색상만 
   assert.equal(renderStudyText('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;');
 });
 
-test('lead 모드는 문단·목록 항목마다 첫 암기 용어 하나만 형광펜으로 표시하고 표 안은 표시하지 않는다', () => {
+test('lead 모드는 같은 암기 용어를 처음 한 번만 형광펜으로 표시하고 표 안은 표시하지 않는다', () => {
   const md = '- 싱글턴(Singleton): 인스턴스를 하나만 생성. 싱글턴은 전역 접근.\n- 프로토타입: 복제. 싱글턴과 다름.\n\n| 계층 | 장비 |\n|---|---|\n| 응용 | 싱글턴 |';
   const html = renderMarkdown(md, { memoryTerms: ['싱글턴', '프로토타입'], memoryMode: 'lead' });
   assert.equal((html.match(/<mark /g) || []).length, 2);
@@ -83,8 +83,19 @@ test('lead 모드는 문단·목록 항목마다 첫 암기 용어 하나만 형
 test('lead 모드는 같은 용어를 처음 나온 곳에만 표시하고, 조사가 붙은 **굵게**도 처리한다', () => {
   const md = '- 개념 스키마(조직 전체)와 외부 스키마.\n- 논리적 독립성: 개념 스키마가 바뀌어도 영향 없음.\n\n**릴레이션 내포(Intension)**라고도 한다.';
   const html = renderMarkdown(md, { memoryTerms: ['개념 스키마', '외부 스키마', '논리적 독립성'], memoryMode: 'lead' });
-  assert.equal((html.match(/<mark /g) || []).length, 2);
+  assert.equal((html.match(/<mark /g) || []).length, 3);
   assert.equal((html.match(/<mark class="study-mark">개념 스키마<\/mark>/g) || []).length, 1);
   assert.ok(html.includes('<mark class="study-mark">논리적 독립성</mark>'));
   assert.ok(html.includes('<strong>릴레이션 내포(Intension)</strong>라고도') && !html.includes('**'));
+});
+
+test('감자 ❗ 항목은 본문의 해당 항목 옆에 한 번만 붙고 못 찾은 항목은 돌려준다', async () => {
+  const { placeExamMarks } = await import('../src/study-markdown.js');
+  const r = placeExamMarks({ definition: '- **속성(Attribute)**: 열.\n- 동치 분할(Equivalence): 입력 그룹화.\n```\n튜플\n```' }, ['Attribute(속성)', '동등 분할', '튜플', '없는 항목']);
+  assert.ok(r.texts.definition.includes('**속성(Attribute)**'));
+  assert.ok(r.texts.definition.includes('동치 분할(Equivalence)') || r.texts.definition.includes('동치 분할(Equivalence)'));
+  assert.deepEqual(r.unmatched, ['튜플', '없는 항목']);
+  const html = renderMarkdown(r.texts.definition);
+  assert.equal((html.match(/class="ex-mark"/g) || []).length, 2);
+  assert.ok(!html.includes(''));
 });
