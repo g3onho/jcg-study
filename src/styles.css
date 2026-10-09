@@ -140,14 +140,14 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 .concept-list li a { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: 14px 2px; gap: 12px; }
 .concept-row-title { font-weight: 600; overflow-wrap: anywhere; }
 .concept-row-title > span { display: block; font-weight: 400; margin-top: 4px; }
-.exam-frequency { display: inline-flex; flex-direction: column; align-items: flex-end; color: var(--muted); font-size: .85rem; white-space: nowrap; }
-.exam-frequency b { font-size: .8rem; font-weight: 600; }
-.frequency-high b { color: var(--bad); border-bottom: 2px solid currentColor; }
-.frequency-repeat b { color: var(--accent); }
+.concept-priority { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.concept-priority b { font-size: .8rem; font-weight: 600; }
+.priority-core { color: var(--bad); }
+.priority-supplement { color: var(--accent); }
+.priority-later, .priority-unrated { color: var(--muted); }
 .exam-guide { border-bottom: 1px solid var(--line); padding: 4px 0 12px; margin-bottom: 14px; color: var(--muted); }
 .exam-guide p { margin: 4px 0; }
 .concept-overview { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; border-block: 1px solid var(--line); padding: 10px 0; margin: 14px 0; }
-.concept-overview .exam-frequency { align-items: flex-start; }
 .exam-history { flex-basis: 100%; }
 .exam-history ul { padding-left: 1.2em; margin: 4px 0; }
 .study-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 20px 0 10px; }
@@ -159,7 +159,7 @@ th { background: var(--chip); } tr.dim td { color: var(--muted); }
 .concept-keywords > span { border-bottom: 1px solid var(--line); }
 .note-context { margin: 6px 0; }
 @media (prefers-color-scheme: dark) { .study-mark { background: #40350e; } }
-@media (max-width: 420px) { .concept-list li a { gap: 8px; } .exam-frequency { font-size: .8rem; } }
+@media (max-width: 420px) { .concept-list li a { gap: 8px; } }
 .pno { flex: none; width: 2em; font-weight: 700; color: var(--accent); }
 .ptitle { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .recall, .check { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }

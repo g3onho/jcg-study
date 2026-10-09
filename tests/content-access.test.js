@@ -19,3 +19,9 @@ test('일반 사용자 콘텐츠에는 파일·출처·검증 상세가 전달�
   for (const value of ['secret', 'F01', '.pdf', '주말코딩', 'secret_future_field']) assert.equal(text.includes(value), false, value);
   assert.equal(source.problems[0].answer_source, '주말코딩');
 });
+
+test('사용자에게 중요도만 제공하고 그 출처·페이지는 제외한다', () => {
+  const source = { concepts: [{ id: 'a', studyPriority: { source: { file: 'F26', path: 'secret.pdf' }, reviewed_at: 'private', topics: [{ title: '설계', level: 'core', pdf_page: 6, note: 'private' }] } }] };
+  assert.deepEqual(studentContent(source).concepts[0].studyPriority, { topics: [{ title: '설계', level: 'core' }] });
+  assert.equal(studentContent({ concepts: [{ id: 'b' }] }).concepts[0].studyPriority, undefined);
+});

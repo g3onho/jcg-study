@@ -18,6 +18,7 @@ export function studentContent(c) {
     concepts: (c.concepts || []).map(x => ({
       ...pick(x, ['id', 'area', 'unit', 'title', 'order', 'prereq', 'summary', 'easy', 'definition', 'compare', 'pitfalls', 'keywords', 'mnemonic', 'core', 'related']),
       verification: verification(x.verification),
+      ...(x.studyPriority ? { studyPriority: { ...pick(x.studyPriority, ['partial']), topics: (x.studyPriority.topics || []).map(t => pick(t, ['title', 'level'])) } } : {}),
       examples: (x.examples || []).map(e => ({ ...pick(e, ['title', 'lang', 'code', 'output', 'env', 'explain']), ...(e.trace ? { trace: table(e.trace) } : {}) })),
       recall: (x.recall || []).map(r => pick(r, ['q', 'a'])),
       checks: (x.checks || []).map(q => ({ ...pick(q, ['id', 'q', 'code', 'lang', 'answer_display', 'explain']), grading: grading(q.grading) })),

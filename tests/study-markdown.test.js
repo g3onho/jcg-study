@@ -22,3 +22,11 @@ test('암기 문장은 마크다운 구조를 유지하고 기본 렌더링과 �
   assert.equal(renderMarkdown('배열'), '<p>배열</p>\n');
   assert.match(renderMarkdown('| A |\n| - |\n| 값 |'), /<div class="tbl"><table>/);
 });
+
+test('형광펜은 첫 문장 또는 첫 목록 항목에만 표시한다', () => {
+  const sentence = renderMarkdown('**정의**는 핵심입니다. 다음 설명은 그대로 읽습니다.\n\n다른 문단입니다.', { memorize: true });
+  assert.match(sentence, /<mark class="study-mark">는 핵심입니다\.<\/mark> 다음 설명/);
+  assert.match(sentence, /<p>다른 문단입니다\.<\/p>/);
+  const list = renderMarkdown('- 첫 정의에는 마침표가 없음\n- 두 번째 항목', { memorize: true });
+  assert.match(list, /<li>두 번째 항목<\/li>/);
+});
