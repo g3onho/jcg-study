@@ -1,0 +1,3 @@
+[functions.account-access]
+# 로그인 요청은 아직 JWT가 없다. register는 함수 안에서 JWT와 관리자 권한을 확인한다.
+verify_jwt = false

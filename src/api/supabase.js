@@ -9,13 +9,20 @@ export function makeSupabaseApi() {
     kind: 'supabase',
     async getSession() { const { data } = await sb.auth.getSession(); return data.session; },
     onAuthChange(cb) { const { data } = sb.auth.onAuthStateChange((_e, s) => cb(s)); return () => data.subscription.unsubscribe(); },
-    async signIn(email, password) {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    async signIn(identifier, password) {
+      if (!identifier.includes('@')) {
+        const { data, error } = await sb.functions.invoke('account-access', { body: { action: 'login', username: identifier, password } });
+        if (error) throw new Error('아이디 로그인에 실패했습니다. 입력 내용을 확인하거나 이메일 로그인을 이용하세요.');
+        const result = await sb.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+        if (result.error) throw result.error;
+        return result.data.session;
+      }
+      const { data, error } = await sb.auth.signInWithPassword({ email: identifier, password });
       if (error) throw error; return data.session;
     },
     async signOut() { await sb.auth.signOut(); },
-    async loadContent() {
-      const { data, error } = await sb.storage.from(BUCKET).download('content/bundle.json', { cacheNonce: Date.now() });
+    async loadContent(isAdmin) {
+      const { data, error } = await sb.storage.from(BUCKET).download(isAdmin ? 'content/bundle.json' : 'content/student.json', { cacheNonce: Date.now() });
       if (error) throw error;
       return JSON.parse(await data.text());
     },
@@ -82,6 +89,16 @@ export function makeSupabaseApi() {
       if (error) throw error;
     },
     async whoami() { const { data } = await sb.auth.getUser(); return data.user; },
+    async isAdmin() {
+      const { data, error } = await sb.rpc('is_admin');
+      if (error) throw new Error('계정 권한 설정을 확인하지 못했습니다. 관리자에게 문의하세요.');
+      return data === true;
+    },
+    async registerUser(account) {
+      const { data, error } = await sb.functions.invoke('account-access', { body: { action: 'register', ...account } });
+      if (error) throw new Error('계정 등록에 실패했습니다. 이메일·아이디 중복과 서버 설정을 확인하세요.');
+      return data;
+    },
     async isAllowed() {
       const { data, error } = await sb.rpc('is_allowed');
       if (error) throw error; return !!data;

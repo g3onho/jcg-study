@@ -12,6 +12,7 @@ import { Progress } from './views/Progress.jsx';
 import { Sources, PdfView } from './views/Sources.jsx';
 import { Search } from './views/Search.jsx';
 import { Settings } from './views/Settings.jsx';
+import { StudyWorkspace } from './components/StudyWorkspace.jsx';
 
 export function parseHash() {
   const h = location.hash.replace(/^#/, '') || '/';
@@ -49,8 +50,8 @@ export function App() {
       case 'p': view = <Problem id={route.parts[1]} route={route} />; break;
       case 'review': view = <Review route={route} />; break;
       case 'progress': view = <Progress />; break;
-      case 'sources': view = <Sources route={route} />; break;
-      case 'pdf': view = <PdfView id={route.parts[1]} route={route} />; break;
+      case 'sources': view = s.isAdmin ? <Sources route={route} /> : <AccessDenied />; break;
+      case 'pdf': view = s.isAdmin ? <PdfView id={route.parts[1]} route={route} /> : <AccessDenied />; break;
       case 'search': view = <Search route={route} />; break;
       case 'settings': view = <Settings />; break;
       default: view = <div class="page"><p>없는 화면입니다. <a href="#/">처음으로</a></p></div>;
@@ -64,19 +65,17 @@ export function App() {
         <a href="#/" class="brand">정처기 실기</a>
         <span class="dday" title={EXAM_LABEL}>{d > 0 ? `D-${d}` : d === 0 ? 'D-DAY' : `시험일 +${-d}`}</span>
         <form class="topsearch" role="search" onSubmit={e => { e.preventDefault(); const v = e.currentTarget.q.value.trim(); location.hash = '#/search?q=' + encodeURIComponent(v); }}>
-          <input name="q" type="search" placeholder="개념·용어·문제·출처 검색" aria-label="검색" defaultValue={top === 'search' ? route.q.q || '' : ''} />
+          <input name="q" type="search" placeholder={s.isAdmin ? '개념·용어·문제·출처 검색' : '개념·용어·문제 검색'} aria-label="검색" defaultValue={top === 'search' ? route.q.q || '' : ''} />
         </form>
         <SaveStatus />
-      </header>
-      <nav class="side" aria-label="주 메뉴">
-        {NAV.map(([k, label, ic]) => <a key={k} href={'#/' + k} class={top === k || (k === 'learn' && top === 'c') || (k === 'practice' && top === 'p') || (k === 'sources' && top === 'pdf') ? 'on' : ''}><span aria-hidden="true">{ic}</span> {label}</a>)}
+      <nav class="menu" aria-label="주 메뉴">
+        {NAV.filter(([k]) => s.isAdmin || k !== 'sources').map(([k, label, ic]) => <a key={k} href={'#/' + k} class={top === k || (k === 'learn' && top === 'c') || (k === 'practice' && top === 'p') || (k === 'sources' && top === 'pdf') ? 'on' : ''}><span aria-hidden="true">{ic}</span> {label}</a>)}
         <button class="linkbtn" onClick={signOut}>로그아웃</button>
       </nav>
-      <main id="main" tabIndex={-1}>{view}</main>
-      <nav class="tabbar" aria-label="하단 메뉴">
-        {NAV.slice(0, 4).map(([k, label, ic]) => <a key={k} href={'#/' + k} class={top === k || (k === 'learn' && top === 'c') || (k === 'practice' && top === 'p') ? 'on' : ''}><span aria-hidden="true">{ic}</span><span>{label}</span></a>)}
-        <a href="#/more" class={['progress', 'sources', 'settings', 'more', 'pdf'].includes(top) ? 'on' : ''} onClick={e => { e.preventDefault(); document.querySelector('.side').classList.toggle('open'); }}><span aria-hidden="true">☰</span><span>더보기</span></a>
-      </nav>
+      </header>
+      {s.content ? <StudyWorkspace key={s.session.user.id + ':' + route.parts.join('/')} route={route} view={view} /> : <main id="main" tabIndex={-1}>{view}</main>}
     </div>
   );
 }
+
+function AccessDenied() { return <div class="page"><h1>관리자 전용</h1><p>원본 자료와 출처는 관리자만 열람할 수 있습니다.</p><a href="#/learn">개념 학습으로 이동</a></div>; }

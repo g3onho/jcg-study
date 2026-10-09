@@ -6,5 +6,5 @@ export default defineConfig(({ command }) => ({
   plugins: [preact()],
   base: command === 'build' ? (process.env.APP_BASE || '/jcg-study/') : '/',
   build: { target: 'es2020', sourcemap: false, chunkSizeWarningLimit: 1500 },
-  server: { host: '127.0.0.1', port: 5173, fs: { allow: ['/home/claude/app', '/home/claude/work/build'] } },
+  server: { host: '127.0.0.1', port: 5173 },
 }));

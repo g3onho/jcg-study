@@ -1,11 +1,13 @@
 -- 정보처리기사 실기 개인 학습 앱 — Supabase 스키마 (여러 번 실행해도 안전하도록 작성)
--- 원칙: 모든 학습 기록·콘텐츠·원본 파일은 '허용된 사용자'만 접근. 익명 접근 불가.
+-- 원칙: 학습 기록은 본인만, 원본·출처·자료 변경은 관리자만. 익명 접근 불가.
+begin;
 
 create table if not exists public.allowed_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
   added_at timestamptz not null default now()
 );
 alter table public.allowed_users enable row level security;
+alter table public.allowed_users add column if not exists role text not null default 'student' check (role in ('admin', 'student'));
 -- 정책 없음 → 클라이언트에서 읽기/쓰기 불가 (아래 security definer 함수로만 확인)
 
 create or replace function public.is_allowed() returns boolean
@@ -14,6 +16,46 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.is_allowed() from public, anon;
 grant execute on function public.is_allowed() to authenticated;
+
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.allowed_users where user_id = auth.uid() and role = 'admin');
+$$;
+revoke all on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
+
+-- 아이디→계정 대응은 서버만 읽는다. 이메일 조회용 공개 RPC를 만들지 않는다.
+create table if not exists public.login_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  username text not null unique check (username ~ '^[a-z0-9_]{3,30}$')
+);
+alter table public.login_profiles enable row level security;
+revoke all on public.login_profiles from anon, authenticated;
+grant all on public.login_profiles to service_role;
+
+create table if not exists public.login_attempts (
+  username text primary key,
+  started_at timestamptz not null default now(),
+  attempts integer not null default 1
+);
+alter table public.login_attempts enable row level security;
+revoke all on public.login_attempts from anon, authenticated;
+create index if not exists login_attempts_started on public.login_attempts(started_at);
+create or replace function public.take_login_slot(p_username text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n integer;
+begin
+  if p_username is null or p_username !~ '^[a-z0-9_]{3,30}$' then return false; end if;
+  delete from public.login_attempts where started_at < now() - interval '1 day';
+  insert into public.login_attempts(username) values (p_username)
+  on conflict (username) do update set
+    attempts = case when login_attempts.started_at < now() - interval '1 minute' then 1 else least(login_attempts.attempts + 1, 11) end,
+    started_at = case when login_attempts.started_at < now() - interval '1 minute' then now() else login_attempts.started_at end
+  returning attempts into n;
+  return n <= 10;
+end $$;
+revoke all on function public.take_login_slot(text) from public, anon, authenticated;
+grant execute on function public.take_login_slot(text) to service_role;
 
 -- 학습 이벤트(추가 전용): 시도·힌트·오답 원인·개념 확인 등. 클라이언트가 만든 UUID로 중복 제출 방지.
 create table if not exists public.events (
@@ -84,7 +126,13 @@ drop policy if exists private_read on storage.objects;
 drop policy if exists private_insert on storage.objects;
 drop policy if exists private_update on storage.objects;
 drop policy if exists private_delete on storage.objects;
-create policy private_read on storage.objects for select to authenticated using (bucket_id = 'private' and public.is_allowed());
-create policy private_insert on storage.objects for insert to authenticated with check (bucket_id = 'private' and public.is_allowed());
-create policy private_update on storage.objects for update to authenticated using (bucket_id = 'private' and public.is_allowed());
-create policy private_delete on storage.objects for delete to authenticated using (bucket_id = 'private' and public.is_allowed());
+-- 문제 이미지에도 제공자·페이지 정보가 있어 관리자만 읽는다.
+create policy private_read on storage.objects for select to authenticated using (
+  bucket_id = 'private' and public.is_allowed() and (
+    public.is_admin() or name in ('content/student.json', 'content/meta.json')
+  )
+);
+create policy private_insert on storage.objects for insert to authenticated with check (bucket_id = 'private' and public.is_admin());
+create policy private_update on storage.objects for update to authenticated using (bucket_id = 'private' and public.is_admin()) with check (bucket_id = 'private' and public.is_admin());
+create policy private_delete on storage.objects for delete to authenticated using (bucket_id = 'private' and public.is_admin());
+commit;

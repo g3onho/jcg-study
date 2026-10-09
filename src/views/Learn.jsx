@@ -3,6 +3,7 @@ import { useStore, addEvent, setKV } from '../store.js';
 import { problemStates, conceptStates, LEVEL_LABEL, AREA_LABEL } from '../engine.js';
 import { grade } from '../grading.js';
 import { Md, Code, Table, VBadges, VDetails, SourceRef, Empty } from '../components/ui.jsx';
+import { problemLink } from '../study-links.js';
 
 export function Learn({ route }) {
   const s = useStore(); const c = s.content;
@@ -85,19 +86,19 @@ export function Concept({ id }) {
 
       <div class="row wrap">
         <button class="btn" onClick={() => addEvent('concept_read', id, { brief })}>{cs?.readAt ? '다시 읽음 표시' : '이 개념 확인함(읽어봄)'}</button>
-        {probs.length ? <a class="btn primary" href={'#/p/' + (probs.find(pid => !pst[pid]?.level) || probs[0]) + '?from=concept'}>연결 문제 풀기</a> : null}
+        {probs.length ? <a class="btn primary" href={problemLink(probs.find(pid => !pst[pid]?.level) || probs[0], id)}>연결 문제 풀기</a> : null}
       </div>
 
-      {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2><ul class="list">{probs.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={'#/p/' + pid}>{p.setTitle} {p.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></section> : null}
+      {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2><ul class="list">{probs.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={problemLink(pid, id)}>{p.setTitle} {p.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></section> : null}
       {x.related?.length ? <p class="small">관련 개념: {x.related.map((r, i) => <span key={r}>{i ? ', ' : ''}<a href={'#/c/' + r}>{c.conceptById[r]?.title}</a></span>)}</p> : null}
 
-      <section>
+      {s.isAdmin && <section>
         <h2 class="h3">출처와 심화 학습</h2>
         {basis.length ? <><div class="small">설명의 근거 자료</div><ul class="srcs">{basis.map((z, i) => <SourceRef key={i} src={z} />)}</ul></> : null}
         {deeper.length ? <><div class="small">더 공부할 원본(생략된 예제·문맥)</div><ul class="srcs">{deeper.map((z, i) => <SourceRef key={i} src={z} />)}</ul></> : null}
         {x.external?.length ? <><div class="small">외부 근거(공식 문서 등) — 자료 밖에서 보충</div><ul class="srcs">{x.external.map((z, i) => <li key={i}><a href={z.url} target="_blank" rel="noopener">{z.title}</a> <span class="small muted">{z.note}</span></li>)}</ul></> : null}
         <VDetails list={x.verification} />
-      </section>
+      </section>}
       <nav class="row between small">{prev ? <a href={'#/c/' + prev}>← {c.conceptById[prev]?.title}</a> : <span />}{next ? <a href={'#/c/' + next}>{c.conceptById[next]?.title} →</a> : <span />}</nav>
     </div>
   );

@@ -48,6 +48,8 @@ export function VBadges({ list }) {
   return <span class="vbs">{list.filter(v => !seen.has(v.type) && seen.add(v.type)).map(v => <span key={v.type} class={'vb ' + (VCLASS[v.type] || '')} title={v.detail || ''}>{v.type}</span>)}</span>;
 }
 export function VDetails({ list }) {
+  const s = useStore();
+  if (!s.isAdmin) return null;
   if (!list || !list.length) return null;
   return (
     <details class="vdetails"><summary>검증 기록 ({list.length})</summary>
@@ -60,10 +62,15 @@ export const ORIGIN_LABEL = {
   restored: '복원 기출 · 주말코딩', mock: '모의고사 · 주말코딩', variant: '기출 변형 · 주말코딩', material: '자료 예제 · 주말코딩',
   authored: '구축 중 작성(AI) · 검토 후 수록', reconstructed: 'AI 재구성(원본 일부 누락)', gamja: '감자 요약 자료',
 };
-export function OriginBadge({ origin }) { return <span class={'ob ob-' + origin}>{ORIGIN_LABEL[origin] || origin}</span>; }
+export function OriginBadge({ origin }) {
+  const s = useStore();
+  const generic = { restored: '복원 기출', mock: '모의고사', variant: '변형 문제', material: '연습 문제', authored: 'AI 작성 연습 문제', reconstructed: 'AI 재구성 문제', gamja: '연습 문제' };
+  return <span class={'ob ob-' + origin}>{(s.isAdmin ? ORIGIN_LABEL : generic)[origin] || '연습 문제'}</span>;
+}
 
 export function SourceRef({ src, label }) {
   const s = useStore();
+  if (!s.isAdmin) return null;
   const f = s.content?.fileById?.[src.file];
   if (!f) return null;
   const pg = src.pdf_page;

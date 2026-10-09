@@ -17,7 +17,7 @@ function deviceLabel() {
 }
 
 const state = {
-  api: null, booting: true, session: null, allowed: null,
+  api: null, booting: true, session: null, allowed: null, isAdmin: false,
   content: null, contentError: null, contentLoading: false,
   events: [], kv: {}, outbox: [], kvPending: {}, conflicts: {},
   save: { status: 'idle', error: null, at: null }, loadedAt: null,
@@ -51,7 +51,7 @@ export async function init() {
     const was = state.session?.user?.id; state.session = s;
     // supabase-js: 인증 상태 콜백 안에서 다른 Supabase 호출을 바로 기다리면 내부 잠금 때문에 멈출 수 있어 다음 틱으로 미룬다.
     if (s && s.user.id !== was) { setTimeout(() => loadAll(), 0); }
-    if (!s) { state.content = null; state.events = []; state.kv = {}; }
+    if (!s || s.user.id !== was) { state.content = null; state.isAdmin = false; state.allowed = null; state.events = []; state.kv = {}; }
     emit();
   });
   state.booting = false; emit();
@@ -71,17 +71,22 @@ export async function signOut() {
 }
 
 export async function loadAll() {
+  const uid = state.session?.user?.id;
+  if (!uid) return;
   state.outbox = lsGet(uidKey('outbox'), []);
   state.kvPending = lsGet(uidKey('kvPending'), {});
   state.conflicts = lsGet(uidKey('conflicts'), {});
-  state.contentLoading = true; state.contentError = null; emit();
+  state.contentLoading = true; state.contentError = null; state.content = null; state.isAdmin = false; emit();
   const slow = setTimeout(() => { if (state.contentLoading) { state.contentError = '불러오는 데 시간이 오래 걸리고 있습니다. 네트워크 상태를 확인하거나 새로고침하세요.'; emit(); } }, 20000);
   try {
     state.allowed = await state.api.isAllowed();
     if (!state.allowed) { state.contentError = '이 계정은 콘텐츠 접근 권한이 없습니다.'; }
     else {
-      const [content] = await Promise.all([state.api.loadContent(), refresh(true)]);
-      state.content = indexContent(content);
+      const isAdmin = await state.api.isAdmin();
+      if (state.session?.user?.id !== uid) return;
+      state.isAdmin = isAdmin; emit();
+      const [content] = await Promise.all([state.api.loadContent(isAdmin), refresh(true)]);
+      if (state.session?.user?.id === uid) { state.isAdmin = isAdmin; state.content = indexContent(content); }
     }
   } catch (e) {
     state.contentError = '콘텐츠를 불러오지 못했습니다: ' + (e.message || e);

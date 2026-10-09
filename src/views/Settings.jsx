@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { useStore, getState, exportBackup, importBackup, resolveConflict, signOut, loadAll, loadAllInk } from '../store.js';
 import { APP_VERSION, EXAM_LABEL } from '../config.js';
+import { studentContent } from '../content-access.js';
 
 export function Settings() {
   const s = useStore();
@@ -22,7 +23,7 @@ export function Settings() {
     <div class="page">
       <h1>설정·백업</h1>
       <section><h2 class="h3">계정</h2>
-        <p>{s.session?.user?.email} · 이 기기: {s.device} · 앱 {APP_VERSION} · 콘텐츠 {s.content?.version || '-'}</p>
+        <p>{s.session?.user?.email} · {s.isAdmin ? '관리자' : '사용자'} · 이 기기: {s.device} · 앱 {APP_VERSION} · 콘텐츠 {s.content?.version || '-'}</p>
         <p class="small muted">시험 기준일: {EXAM_LABEL}</p>
         <button class="btn" onClick={signOut}>로그아웃</button>
       </section>
@@ -48,20 +49,43 @@ export function Settings() {
           <li>복습 간격: 틀림·부분 정답 → 1일, 힌트 사용·해설 먼저 봄 → 2일, 처음 맞힘 → 4일, 다른 날 다시 맞힘 → 8일, 다시 맞힘 3회 이상 → 16일. 시험 이틀 전까지는 한 번 더 보도록 간격을 줄입니다.</li>
           <li>밀린 숙제를 쌓지 않습니다. 볼 때가 된 문제 중 오답·누적 오답·힌트 사용 순으로 상위 몇 개만 보여 줍니다.</li>
           <li>개념 추천: 시험 7일 이내면 아직 안 본 핵심 개념 → 최근 2주 연결 문제 오답 3회 이상인 개념 → 선수 개념을 마친 미확인 개념(목차 순) 순입니다.</li>
-          <li>문제 추천: 복습 차례 문제 → 방금/최근 본 개념과 연결된 새 문제 → 가장 적게 풀어 본 영역의 새 문제.</li>
+          <li>개념에서 연결 문제 풀기로 들어가면 해당 개념 안에서 복습·미풀이·기존 문제를 이어갑니다. 모두 확인한 뒤 다음 개념을 직접 선택할 수 있습니다. 일반 문제 추천은 복습 차례 → 최근 본 개념 → 가장 적게 풀어 본 영역 순입니다.</li>
           <li>‘핵심’ 표시는 2022년 3회~2026년 2회 복원 기출 12회분(171문항)에서 연결된 문항이 있는 개념입니다. 다음 시험 출제 확률을 뜻하지 않습니다.</li>
           <li>한 번 맞혔다고 숙달로 보지 않습니다. ‘나중에 다시 맞힘’은 처음 시도와 다른 날에 다시 맞혔을 때만 표시합니다.</li>
         </ul>
       </section>
 
-      <section><h2 class="h3">콘텐츠 가져오기(관리)</h2>
-        <p class="small">구축 단계에서 만든 콘텐츠 패키지 폴더(<code>_웹앱_업로드</code>)를 선택하면 비공개 저장소로 올립니다. 로그인한 허용 계정만 가능합니다.</p>
+      {s.isAdmin && <AccountRegistration />}
+      {s.isAdmin && <section><h2 class="h3">콘텐츠 가져오기(관리)</h2>
+        <p class="small">콘텐츠 패키지를 비공개 저장소로 올립니다. 관리자는 원본과 출처를 열람하고, 일반 사용자는 출처 정보가 제외된 문제·코드·표로 학습합니다. 원문 이미지는 관리자 전용입니다.</p>
+        <button class="btn" onClick={async () => { try { await getState().api.uploadFile('content/student.json', new Blob([JSON.stringify(studentContent(s.content))], { type: 'application/json' }), 'application/json'); setMsg('사용자용 학습 콘텐츠를 준비했습니다.'); } catch { setMsg('사용자용 콘텐츠 준비에 실패했습니다. 다시 시도하세요.'); } }}>현재 콘텐츠로 사용자용 학습 파일 만들기</button>
         <div class="row wrap"><label class="btn">패키지 폴더 선택<input type="file" webkitdirectory={true} directory={true} multiple hidden onChange={e => setImp([...e.target.files])} /></label>
           <label class="btn">개별 파일 선택<input id="import-files" type="file" multiple hidden accept=".json,.png,.pdf" onChange={e => setImp([...e.target.files])} /></label></div>
         {imp && <Importer files={imp} />}
-      </section>
+      </section>}
     </div>
   );
+}
+
+function AccountRegistration() {
+  const [busy, setBusy] = useState(false); const [message, setMessage] = useState('');
+  async function submit(e) {
+    e.preventDefault(); const form = e.currentTarget; setBusy(true); setMessage('');
+    try {
+      await getState().api.registerUser({ email: form.email.value.trim(), username: form.username.value.trim().toLowerCase(), password: form.password.value });
+      form.reset(); setMessage('사용자 계정을 등록했습니다. 아이디와 초기 비밀번호를 사용자에게 전달하세요.');
+    } catch (err) { setMessage(err.message); }
+    finally { setBusy(false); }
+  }
+  return <section><h2 class="h3">사용자 계정 등록</h2><p class="small muted">이메일로 계정을 등록하고 아이디로 로그인합니다. 새 계정은 일반 사용자이며 원본·출처·자료 관리에 접근할 수 없습니다.</p>
+    <form class="account-form" onSubmit={submit}>
+      <label>이메일<input name="email" type="email" autoComplete="off" required /></label>
+      <label>로그인 아이디<input name="username" pattern="[a-z0-9_]{3,30}" minLength={3} maxLength={30} autoCapitalize="none" autoComplete="off" spellcheck={false} title="영문 소문자·숫자·밑줄 3~30자" required /></label>
+      <label>초기 비밀번호<input name="password" type="password" minLength={12} maxLength={72} autoComplete="new-password" required /></label>
+      <button class="btn primary" disabled={busy}>{busy ? '등록 중…' : '사용자 등록'}</button>
+    </form>
+    {message && <p class="small" role="status">{message}</p>}
+  </section>;
 }
 
 function Importer({ files }) {
@@ -83,7 +107,11 @@ function Importer({ files }) {
       const p = rel(f);
       const type = p.endsWith('.json') ? 'application/json' : p.endsWith('.png') ? 'image/png' : p.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream';
       for (let t = 0; t < 3; t++) {
-        try { await api.uploadFile(p, f, type); n++; setDone(n); break; }
+        try {
+          await api.uploadFile(p, f, type);
+          if (p === 'content/bundle.json') await api.uploadFile('content/student.json', new Blob([JSON.stringify(studentContent(JSON.parse(await f.text())))], { type: 'application/json' }), 'application/json');
+          n++; setDone(n); break;
+        }
         catch (e) { if (t === 2) out.push(p + ': ' + e.message); }
       }
     }

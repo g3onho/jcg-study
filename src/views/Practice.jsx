@@ -3,7 +3,8 @@ import { useStore, addEvent, setKV, getKV, resolveConflict } from '../store.js';
 import { problemStates, conceptStates, recommendProblem, LEVEL_LABEL, AREA_LABEL, CAUSES } from '../engine.js';
 import { grade } from '../grading.js';
 import { Md, Code, Table, VBadges, VDetails, OriginBadge, SourceRef, SignedImg, Empty } from '../components/ui.jsx';
-import { InkBar, InkCodeLayer, InkPad, useInk, useInkPrefs } from '../components/Ink.jsx';
+import { InkCodeLayer } from '../components/Ink.jsx';
+import { problemLink } from '../study-links.js';
 
 const LANG_LABEL = { c: 'C', java: 'Java', python: 'Python', sql: 'SQL' };
 
@@ -52,7 +53,7 @@ function statusKey(st) { if (!st?.level) return '0'; if (st.status === 'wrong') 
 
 function draftKey(id) { return 'draft:' + id; }
 
-export function Problem({ id, route }) {
+export function Problem({ id, route, ink, inkPrefs }) {
   const s = useStore(); const c = s.content;
   const p = c.problemById[id];
   const pst = problemStates(s.events); const cst = conceptStates(s.events);
@@ -68,13 +69,11 @@ export function Problem({ id, route }) {
   const draft = getKV(draftKey(id)) || {};
   const [ans, setAns] = useState(() => ({ text: draft.text || '', parts: draft.parts || [] }));
   const conflict = s.conflicts[draftKey(id)];
-  const ink = useInk(id);
-  const [inkPrefs, setInkPrefs] = useInkPrefs();
 
   useEffect(() => {
     setPhase('solve'); setHintN(0); setRevealed(false); setRes(null); setLastAttempt(null); setShowImg(!!p?.prefer_image); setShowTitle(false); setSelfChecks({});
     const d = getKV(draftKey(id)) || {}; setAns({ text: d.text || '', parts: d.parts || [] });
-    if (p) setKV('pos', { hash: '/p/' + id, title: `${p.setTitle} ${p.no}번 (${AREA_LABEL[p.area]})`, at: new Date().toISOString(), device: s.device }, 1500);
+    if (p) setKV('pos', { hash: route.raw, title: `${p.setTitle} ${p.no}번 (${AREA_LABEL[p.area]})`, at: new Date().toISOString(), device: s.device }, 1500);
   }, [id]);
 
   if (!p) return <div class="page"><p>문제를 찾을 수 없습니다.</p></div>;
@@ -99,7 +98,11 @@ export function Problem({ id, route }) {
   }
   const showAnswer = phase === 'result' || revealed;
   const hints = p.hints || [];
-  const next = recommendProblem(c, cst, pst, { exclude: new Set([id]) });
+  const concept = c.conceptById[route.q.concept] && (p.concepts || []).includes(route.q.concept) ? route.q.concept : null;
+  const seen = concept ? [...new Set([...(route.q.seen || '').split(',').filter(pid => c.problemById[pid]), id])] : [id];
+  const next = recommendProblem(c, cst, pst, { exclude: new Set(seen), preferConcept: concept });
+  const conceptOrder = c.toc.flatMap(u => u.concepts);
+  const nextConcept = concept && conceptOrder[conceptOrder.indexOf(concept) + 1];
   const similar = [...new Set((p.concepts || []).flatMap(cid => c.problemsByConcept[cid] || []))].filter(x => x !== id).slice(0, 6);
 
   return (
@@ -120,7 +123,7 @@ export function Problem({ id, route }) {
         </div>
       )}
 
-      <InkBar api={ink} prefs={inkPrefs} setPrefs={setInkPrefs} />
+      {concept && <div class="notice small"><a href={'#/c/' + concept}>{c.conceptById[concept].title}</a> 연결 문제 학습 중 · 이 개념 안에서 이어갑니다.</div>}
 
       <section class="qbox">
         {p.notice && <div class="notice small"><b>원본 표기</b> {p.notice}</div>}
@@ -132,7 +135,6 @@ export function Problem({ id, route }) {
         {p.image && <button class="linkbtn small" onClick={() => setShowImg(!showImg)}>{showImg ? '텍스트로 보기' : '원문 이미지로 보기'}{p.prefer_image && !showImg ? ' (표·그림은 원문 이미지가 정확합니다)' : ''}</button>}
       </section>
 
-      <InkPad api={ink} prefs={inkPrefs} hasCode={!!p.code && !(showImg && p.image)} />
 
       {phase === 'solve' && (
         <section class="answer">
@@ -166,7 +168,10 @@ export function Problem({ id, route }) {
           {spec.mode === 'output' && <div class="small">내 답안<pre class="pre">{ans.text || '(빈칸)'}</pre></div>}
           {(res.result !== 'correct' && res.result !== 'self_correct') && lastAttempt && <CausePicker pid={id} attempt={lastAttempt} />}
           <div class="row wrap"><button class="btn" onClick={() => { setPhase('solve'); setHintN(0); setRevealed(false); }}>다시 풀기</button>
-            {next && <a class="btn primary" href={'#/p/' + next.pid}>다음 추천 문제</a>}</div>
+            {next && <a class="btn primary" href={problemLink(next.pid, concept, seen)}>{concept ? '다음 연결 문제' : '다음 추천 문제'}</a>}
+            {concept && <a class="btn" href={'#/c/' + concept}>개념으로 돌아가기</a>}
+            {concept && !next && nextConcept && <a class="btn primary" href={'#/c/' + nextConcept}>다음 개념 학습</a>}</div>
+          {concept && !next && <p class="notice">이번 묶음의 연결 문제를 모두 확인했습니다. 개념을 다시 보거나 다음 개념으로 이동할 수 있습니다.</p>}
           {next && <div class="small muted">다음 추천 이유: {next.reason}</div>}
         </section>
       )}
@@ -176,10 +181,10 @@ export function Problem({ id, route }) {
       <section>
         <h2 class="h3">관련 개념</h2>
         {(p.concepts || []).length ? <ul class="list">{p.concepts.map(cid => { const x = c.conceptById[cid]; return x ? <li key={cid}><a href={'#/c/' + cid}>{x.title}</a> {cst[cid]?.readAt ? <span class="small muted">· 읽어봄</span> : <span class="small muted">· 아직 안 봄</span>}</li> : null; })}</ul> : <p class="small muted">연결된 개념 없음</p>}
-        {showAnswer && similar.length > 0 && <><h3 class="h4">같은 개념의 다른 문제(변형 연습)</h3><ul class="list">{similar.map(x => { const q = c.problemById[x]; return <li key={x}><a href={'#/p/' + x}>{q.setTitle} {q.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[x]?.level || 0]}</span></li>; })}</ul></>}
+        {showAnswer && similar.length > 0 && <><h3 class="h4">같은 개념의 다른 문제(변형 연습)</h3><ul class="list">{similar.map(x => { const q = c.problemById[x]; return <li key={x}><a href={problemLink(x, concept && q.concepts?.includes(concept) ? concept : null, seen)}>{q.setTitle} {q.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[x]?.level || 0]}</span></li>; })}</ul></>}
       </section>
 
-      <section>
+      {s.isAdmin && <section>
         <h2 class="h3">출처</h2>
         <ul class="srcs">
           {(p.sources || []).filter(x => x.role === 'question').map((x, i) => <SourceRef key={i} src={x} label={'문제 원문 · ' + (c.fileById[x.file]?.title || '')} />)}
@@ -189,7 +194,7 @@ export function Problem({ id, route }) {
         </ul>
         {p.duplicates?.length ? <p class="small muted">같은 문제가 실린 다른 자료: {p.duplicates.join(', ')}</p> : null}
         <VDetails list={p.verification} />
-      </section>
+      </section>}
 
       {st?.attempts?.length ? (
         <details class="history"><summary>내 풀이 기록 ({st.attempts.filter(a => a.result !== 'revealed').length})</summary>

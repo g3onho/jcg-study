@@ -137,13 +137,16 @@ export function areaBalance(content, pst) {
 
 export function recommendProblem(content, cst, pst, { exclude = new Set(), preferConcept } = {}) {
   const now = new Date();
+  if (preferConcept) {
+    const linked = content.problems.filter(p => p.status !== 'hidden' && !exclude.has(p.id) && (p.concepts || []).includes(preferConcept));
+    const due = reviewQueue(content, pst, now).find(x => linked.some(p => p.id === x.pid));
+    if (due) return { pid: due.pid, reason: '이 개념의 복습 문제: ' + due.reasons.join(' · ') };
+    const p = linked.find(p => !pst[p.id]?.level) || linked[0];
+    return p ? { pid: p.id, reason: `${content.conceptById[preferConcept]?.title || '현재 개념'}의 연결 문제` } : null;
+  }
   const due = reviewQueue(content, pst, now).filter(x => !exclude.has(x.pid));
   if (due.length) return { pid: due[0].pid, reason: '우선 복습: ' + due[0].reasons.join(' · ') };
   const fresh = content.problems.filter(p => !pst[p.id]?.level && !exclude.has(p.id) && p.status !== 'hidden');
-  if (preferConcept) {
-    const f = fresh.find(p => (p.concepts || []).includes(preferConcept));
-    if (f) return { pid: f.id, reason: `방금 본 개념(${content.conceptById[preferConcept]?.title})과 연결된 새 문제` };
-  }
   // 최근에 읽은 개념과 연결된 새 문제
   const recent = Object.entries(cst).filter(([, s]) => s.readAt).sort((a, b) => b[1].readAt.localeCompare(a[1].readAt)).map(([id]) => id);
   for (const cid of recent.slice(0, 5)) {
