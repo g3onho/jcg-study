@@ -2,6 +2,7 @@ import { useStore, getKV, setKV } from '../store.js';
 import { problemStates, conceptStates, reviewQueue, recommendConcept, recommendProblem, focusSession, daysToExam, AREA_LABEL } from '../engine.js';
 import { EXAM_LABEL } from '../config.js';
 import { Empty, ExamBadge } from '../components/ui.jsx';
+import { focusHref } from '../study-links.js';
 
 export function useDerived() {
   const s = useStore();
@@ -81,12 +82,13 @@ export function Focus() {
     <div class="page">
       <h1>집중 학습</h1>
       <p class="muted small">복습할 문제 → 추천 개념 → 영역을 섞은 새 문제 순서입니다. 순서는 지키지 않아도 됩니다. 중간에 그만두어도 기록과 작성 중인 답안은 저장됩니다. 이 묶음은 12시간 동안 유지됩니다.</p>
+      {(() => { const first = items.find(it => it.kind === 'concept' ? !cst[it.cid]?.readAt : !pst[it.pid]?.level); return first ? <p><a class="btn primary" href={focusHref(first)}>{items.indexOf(first) > 0 ? '이어서 풀기' : '바로 시작'} →</a></p> : null; })()}
       <button class="btn small" onClick={() => setKV('focus', { created: new Date().toISOString(), items: focusSession(c, cst, pst) })}>새 묶음 만들기</button>
       <ol class="list">
         {items.map((it, i) => {
-          if (it.kind === 'concept') { const x = c.conceptById[it.cid]; const done = !!cst[it.cid]?.readAt; return <li key={i} class={done ? 'done' : ''}><a href={'#/c/' + it.cid}>📘 {x.title}</a>{done && ' ✓'}<div class="small muted">{it.reason}</div></li>; }
+          if (it.kind === 'concept') { const x = c.conceptById[it.cid]; const done = !!cst[it.cid]?.readAt; return <li key={i} class={done ? 'done' : ''}><a href={focusHref(it)}>📘 {x.title}</a>{done && ' ✓'}<div class="small muted">{it.reason}</div></li>; }
           const p = c.problemById[it.pid]; const st = pst[it.pid];
-          return <li key={i} class={st?.level ? 'done' : ''}><a href={'#/p/' + it.pid + '?from=focus'}>✏️ {p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><ExamBadge problem={p} />{st?.level ? ' ✓' : ''}<div class="small muted">{it.reason}</div></li>;
+          return <li key={i} class={st?.level ? 'done' : ''}><a href={focusHref(it)}>✏️ {p.setTitle} {p.no}번 · {AREA_LABEL[p.area]}</a><ExamBadge problem={p} />{st?.level ? ' ✓' : ''}<div class="small muted">{it.reason}</div></li>;
         })}
       </ol>
     </div>

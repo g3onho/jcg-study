@@ -7,6 +7,8 @@ import { InkCodeLayer } from '../components/Ink.jsx';
 import { problemLink } from '../study-links.js';
 import { AnswerInput } from '../components/Question.jsx';
 import { feedbackLink } from './Feedback.jsx';
+import { FocusNext } from '../components/FocusNext.jsx';
+import { focusPosition, focusHref } from '../study-links.js';
 
 const LANG_LABEL = { c: 'C', java: 'Java', python: 'Python', sql: 'SQL' };
 
@@ -102,8 +104,9 @@ export function Problem({ id, route, ink, inkPrefs }) {
   const showAnswer = phase === 'result' || revealed;
   const hints = p.hints || [];
   const concept = c.conceptById[route.q.concept] && (p.concepts || []).includes(route.q.concept) ? route.q.concept : null;
-  const seen = concept ? [...new Set([...(route.q.seen || '').split(',').filter(pid => c.problemById[pid]), id])] : [id];
-  const next = recommendProblem(c, cst, pst, { exclude: new Set(seen), preferConcept: concept });
+  const seen = [...new Set([...(route.q.seen || '').split(',').filter(pid => c.problemById[pid]), id])];
+  const inFocus = route.q.from === 'focus' && !!focusPosition(getKV('focus')?.items, 'problem', id);
+  const next = inFocus ? null : recommendProblem(c, cst, pst, { exclude: new Set(seen), preferConcept: concept });
   const conceptOrder = c.toc.flatMap(u => u.concepts);
   const nextConcept = concept && conceptOrder[conceptOrder.indexOf(concept) + 1];
   const similar = [...new Set((p.concepts || []).flatMap(cid => c.problemsByConcept[cid] || []))].filter(x => x !== id).slice(0, 6);
@@ -126,6 +129,7 @@ export function Problem({ id, route, ink, inkPrefs }) {
         </div>
       )}
 
+      {inFocus && <div class="notice small">집중 학습 묶음의 순서대로 이어갑니다. <a href="#/focus">묶음 목록</a></div>}
       {concept && <div class="notice small"><a href={'#/c/' + concept}>{c.conceptById[concept].title}</a> 연결 문제 학습 중 · 이 개념 안에서 이어갑니다.</div>}
 
       <section class="qbox">
@@ -150,6 +154,7 @@ export function Problem({ id, route, ink, inkPrefs }) {
             {spec.mode === 'self' && !revealed && <button class="btn primary" onClick={reveal}>모범 답안과 비교하기</button>}
             {hintN < hints.length && <button class="btn" onClick={() => setHintN(hintN + 1)}>힌트 {hintN + 1}/{hints.length} 보기</button>}
             {!revealed && spec.mode !== 'self' && <button class="btn ghost" onClick={reveal}>해설 바로 보기</button>}
+            {inFocus && <FocusNext kind="problem" id={id} skip />}
           </div>
           {spec.mode === 'self' && revealed && (
             <div class="selfgrade">
@@ -171,11 +176,12 @@ export function Problem({ id, route, ink, inkPrefs }) {
           {spec.mode === 'output' && <div class="small">내 답안<pre class="pre">{ans.text || '(빈칸)'}</pre></div>}
           {(res.result !== 'correct' && res.result !== 'self_correct') && lastAttempt && <CausePicker pid={id} attempt={lastAttempt} />}
           <div class="row wrap"><button class="btn" onClick={() => { setPhase('solve'); setHintN(0); setRevealed(false); }}>다시 풀기</button>
-            {next && <a class="btn primary" href={problemLink(next.pid, concept, seen)}>{concept ? '다음 연결 문제' : '다음 추천 문제'}</a>}
+            {next && <a class="btn primary" href={problemLink(next.pid, concept, seen, route.q.from)}>{concept ? '다음 연결 문제' : '다음 추천 문제'}</a>}
             {concept && <a class="btn" href={'#/c/' + concept}>개념으로 돌아가기</a>}
             {concept && !next && nextConcept && <a class="btn primary" href={'#/c/' + nextConcept}>다음 개념 학습</a>}</div>
           {concept && !next && <p class="notice">이번 묶음의 연결 문제를 모두 확인했습니다. 개념을 다시 보거나 다음 개념으로 이동할 수 있습니다.</p>}
           {next && <div class="small muted">다음 추천 이유: {next.reason}</div>}
+          {inFocus && <FocusNext kind="problem" id={id} />}
         </section>
       )}
 

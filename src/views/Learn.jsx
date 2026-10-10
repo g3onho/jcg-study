@@ -6,6 +6,7 @@ import { Md, Code, Table, VBadges, VDetails, SourceRef, SignedImg, Empty } from 
 import { placeExamMarks } from '../study-markdown.js';
 import { problemLink } from '../study-links.js';
 import { feedbackLink } from './Feedback.jsx';
+import { FocusNext } from '../components/FocusNext.jsx';
 import { getStudyPriority, PRIORITY_LABEL } from '../study-priority.js';
 
 export function Learn({ route }) {
@@ -42,7 +43,7 @@ export function Learn({ route }) {
   );
 }
 
-export function Concept({ id }) {
+export function Concept({ id, route }) {
   const s = useStore(); const c = s.content;
   const x = c.conceptById[id];
   const cst = conceptStates(s.events); const pst = problemStates(s.events);
@@ -108,6 +109,8 @@ export function Concept({ id }) {
         <button class="btn" onClick={() => addEvent('concept_read', id, { brief })}>{cs?.readAt ? '다시 읽음 표시' : '이 개념 확인함(읽어봄)'}</button>
         {probs.length ? <a class="btn primary" href={problemLink(probs.find(pid => !pst[pid]?.level) || probs[0], id)}>연결 문제 풀기</a> : null}
       </div>
+
+      {route?.q?.from === 'focus' && <FocusNext kind="concept" id={id} />}
 
       {probs.length ? <section><h2 class="h3">연결 문제 ({probs.length})</h2><ul class="list">{probs.map(pid => { const p = c.problemById[pid]; return <li key={pid}><a href={problemLink(pid, id)}>{p.setTitle} {p.no}번</a> <span class="small muted">{LEVEL_LABEL[pst[pid]?.level || 0]}{pst[pid]?.status === 'wrong' ? ' · 마지막 오답' : ''}</span></li>; })}</ul></section> : null}
       {x.related?.length ? <p class="small">관련 개념: {x.related.map((r, i) => <span key={r}>{i ? ', ' : ''}<a href={'#/c/' + r}>{c.conceptById[r]?.title}</a></span>)}</p> : null}

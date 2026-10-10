@@ -48,7 +48,7 @@ export function App() {
       case '': view = <Home />; break;
       case 'focus': view = <Focus />; break;
       case 'learn': view = <Learn route={route} />; break;
-      case 'c': view = <Concept id={route.parts[1]} />; break;
+      case 'c': view = <Concept id={route.parts[1]} route={route} />; break;
       case 'practice': view = <Practice route={route} />; break;
       case 'p': view = <Problem id={route.parts[1]} route={route} />; break;
       case 'exam': view = route.parts[1] ? <Exam id={route.parts[1]} /> : <ExamList />; break;

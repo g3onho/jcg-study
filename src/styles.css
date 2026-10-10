@@ -262,3 +262,4 @@ details summary { cursor: pointer; min-height: 32px; }
 b.fb-new { color: var(--accent); } b.fb-done { color: var(--ok); }
 .row.tight { margin: 0; gap: 6px; }
 .admin .tbl table { min-width: 760px; }
+.focusbar { padding: 10px 12px; border: 1px solid var(--line, #d8dee6); border-radius: 10px; margin: 14px 0; }
